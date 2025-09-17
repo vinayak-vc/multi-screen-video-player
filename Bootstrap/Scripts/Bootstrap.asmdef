@@ -1,0 +1,19 @@
+{
+    "name": "Bootstrap",
+    "rootNamespace": "ViitorCloud.MultiScreenVideoPlayer",
+    "references": [
+        "Unity.Netcode.Runtime",
+        "Unity.TextMeshPro",
+        "Utility",
+        "popupmanager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
