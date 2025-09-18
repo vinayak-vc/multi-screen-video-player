@@ -5,13 +5,11 @@ using TMPro;
 
 using static Modules.Utility.Utility;
 
-using Unity.Netcode;
-
 using UnityEngine;
 using UnityEngine.Video;
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
-    public class WindowsPlayer : NetworkBehaviour {
+    public class WindowsPlayer : MonoBehaviour {
         public static WindowsPlayer Instance { get; private set; }
 
         public TextMeshProUGUI ipAddress;
@@ -31,12 +29,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             videoPlayer.Prepare();
         }
 
+        private void Start() {
+            // Check if multiple displays exist
+            for (int i = 1; i < Display.displays.Length; i++)
+            {
+                // Activate additional displays
+                Display.displays[i].Activate();
+            }
+        }
+
         private void FixedUpdate() {
             if (videoPlayer != null && videoPlayer.isPrepared && videoPlayer.isPlaying) {
                 UpdateProgress(videoPlayer.time, videoPlayer.length);
             }
             
-            ipAddress.gameObject.SetActive(Input.GetKeyDown(KeyCode.RightControl));
+            ipAddress.gameObject.SetActive(Input.GetKey(KeyCode.F5));
         }
 
         public void ExecuteCommand(string command) {

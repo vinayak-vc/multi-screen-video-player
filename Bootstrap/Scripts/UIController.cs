@@ -22,10 +22,17 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public Button setPlaybackSpeedButton;
         public Button secondsPrev;
         public Button secondsNext;
+        public Button ipButton;
 
         public TextMeshProUGUI sliderText;
         public TextMeshProUGUI setPlaybackSpeedButtonText;
         public TextMeshProUGUI videoName;
+
+        public GameObject ipPanel;
+        public GameObject autoConnectPanel;
+        public TMP_InputField ipText;
+        public TextMeshProUGUI ipErrorText;
+        public TextMeshProUGUI autoConnectText;
 
         private readonly float[] _playbackspeeds = {
             1f, 1.5f, 2f, 2.5f, 3f
@@ -43,7 +50,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             secondsPrev.onClick.AddListener(Seek15SecPrev);
             secondsNext.onClick.AddListener(Seek15SecNext);
             setPlaybackSpeedButton.onClick.AddListener(OnSetPlaybackSpeedClicked);
+            ipButton.onClick.AddListener(IpButtonClickEvent);
+            BootstrapManager.OnClientConnected += SuccessCallBack;
+            BootstrapManager.OnClientDisconnected += OnClientDisconnected;
         }
+        
 
         private void OnDisable() {
             playButton.onClick.RemoveListener(OnPlayButtonClicked);
@@ -55,6 +66,53 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             secondsPrev.onClick.RemoveListener(Seek15SecPrev);
             secondsNext.onClick.RemoveListener(Seek15SecNext);
             setPlaybackSpeedButton.onClick.RemoveListener(OnSetPlaybackSpeedClicked);
+            ipButton.onClick.RemoveListener(IpButtonClickEvent);
+            BootstrapManager.OnClientDisconnected -= OnClientDisconnected;
+            BootstrapManager.OnClientConnected -= SuccessCallBack;
+        }
+
+        private void Start() {
+            if (PlayerPrefs.HasKey("ip")) {
+                ipText.text = PlayerPrefs.GetString("ip", "");
+                IpButtonClickEvent();
+            } else {
+                ipPanel.SetActive(true);
+            }
+        }
+
+        private void IpButtonClickEvent() {
+            if (!string.IsNullOrEmpty(ipText.text)) {
+                autoConnectText.text = "Connecting...";
+                autoConnectPanel.SetActive(true);
+                BootstrapManager.Instance.Connect(ipText.text);
+            } else {
+                ipErrorText.text = "IP text can not be empty";
+                autoConnectPanel.SetActive(false);
+            }
+        }
+
+        private void SuccessCallBack(bool connected) {
+            if (!connected) {
+                ipErrorText.text = "Cannot connect to the server. Enter correct IP address.";
+                autoConnectPanel.SetActive(false);
+            } else {
+                PlayerPrefs.SetString("ip", ipText.text);
+                StartCoroutine(ConnectionSuccessful());
+            }
+        }
+        
+        private IEnumerator ConnectionSuccessful() {
+            yield return new WaitForSeconds(2f);
+            autoConnectText.text = "Connected";
+            yield return new WaitForSeconds(1f);
+            ipPanel.SetActive(false);
+            autoConnectPanel.SetActive(false);
+        }
+        
+        private void OnClientDisconnected() {
+            ipPanel.SetActive(true);
+            autoConnectPanel.SetActive(false);
+            ipErrorText.text = "Disconnected";
         }
 
 
@@ -132,7 +190,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
             IEnumerator Enumrator() {
                 if (progressSlider.value + 15 < progressSlider.maxValue) {
-                    _isDraggingSlider = true; // User released slider
+                    OnSliderPointerDown();
                     yield return new WaitForEndOfFrame();
                     progressSlider.value += 15;
                     yield return new WaitForEndOfFrame();
@@ -140,12 +198,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
             }
         }
+
         private void Seek15SecPrev() {
             StartCoroutine(Enumrator());
             return;
 
             IEnumerator Enumrator() {
-                _isDraggingSlider = true; // User released slider
+                OnSliderPointerDown();
                 yield return new WaitForEndOfFrame();
                 if (progressSlider.value - 15 > 0) {
                     progressSlider.value -= 15;
@@ -191,6 +250,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void SendSeekCommand(float time) {
             BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Seek}{Commands.Separator}{time}");
         }
+
         public void SetVideoName(string vName) {
             videoName.text = vName;
         }
