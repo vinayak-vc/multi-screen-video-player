@@ -6,7 +6,8 @@
         "Unity.TextMeshPro",
         "Utility",
         "popupmanager",
-        "Unity.Networking.Transport"
+        "Unity.Networking.Transport",
+        "Coffee.UIEffect"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,46 +1,55 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 
 using TMPro;
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+
+using static Modules.Utility.Utility;
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class UIController : MonoBehaviour {
         private bool _isPlaying;
-        public Slider progressSlider;
+        [SerializeField] private Slider progressSlider;
 
-        private bool _isDraggingSlider = false;
+        [SerializeField] private Button playButton;
+        [SerializeField] private Button pauseButton;
+        [SerializeField] private Button stopButton;
+        [SerializeField] private Button muteButton;
+        [SerializeField] private Button unmuteButton;
+        [SerializeField] private Button restartButton;
+        [SerializeField] private Button setPlaybackSpeedButton;
+        [SerializeField] private Button secondsPrev;
+        [SerializeField] private Button secondsNext;
+        [SerializeField] private Button ipButton;
+        [SerializeField] private Button refreshButton;
+        [SerializeField] private Toggle loopToggle;
 
-        public Button playButton;
-        public Button pauseButton;
-        public Button stopButton;
-        public Button muteButton;
-        public Button unmuteButton;
-        public Button restartButton;
-        public Button setPlaybackSpeedButton;
-        public Button secondsPrev;
-        public Button secondsNext;
-        public Button ipButton;
+        [SerializeField] private TextMeshProUGUI sliderText;
+        [SerializeField] private TextMeshProUGUI setPlaybackSpeedButtonText;
 
-        public TextMeshProUGUI sliderText;
-        public TextMeshProUGUI setPlaybackSpeedButtonText;
-        public TextMeshProUGUI videoName;
+        [SerializeField] private GameObject ipPanel;
+        [SerializeField] private GameObject autoConnectPanel;
+        [SerializeField] private TMP_InputField ipText;
+        [SerializeField] private TextMeshProUGUI ipErrorText;
+        [SerializeField] private TextMeshProUGUI autoConnectText;
 
-        public GameObject ipPanel;
-        public GameObject autoConnectPanel;
-        public TMP_InputField ipText;
-        public TextMeshProUGUI ipErrorText;
-        public TextMeshProUGUI autoConnectText;
+        [SerializeField] private ButtonController buttonControllerPrefab;
+        [SerializeField] private Transform buttonControllerTransform;
+        private List<ButtonController> _buttonControllerList = new List<ButtonController>();
 
-        private readonly float[] _playbackspeeds = {
+        private readonly float[] _playbackSpeeds = {
             1f, 1.5f, 2f, 2.5f, 3f
         };
 
         private int _playbackSpeedIndex;
+        private bool _isDraggingSlider = false;
 
         private void OnEnable() {
+            loopToggle.onValueChanged.AddListener(OnLoopToggleValueChanged);
             playButton.onClick.AddListener(OnPlayButtonClicked);
             pauseButton.onClick.AddListener(OnPauseButtonClicked);
             //stopButton.onClick.AddListener(OnStopButtonClicked);
@@ -51,11 +60,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             secondsNext.onClick.AddListener(Seek15SecNext);
             setPlaybackSpeedButton.onClick.AddListener(OnSetPlaybackSpeedClicked);
             ipButton.onClick.AddListener(IpButtonClickEvent);
+            refreshButton.onClick.AddListener(RefreshButtonClickEvent);
             BootstrapManager.OnClientConnected += SuccessCallBack;
             BootstrapManager.OnClientDisconnected += OnClientDisconnected;
         }
-        
-
         private void OnDisable() {
             playButton.onClick.RemoveListener(OnPlayButtonClicked);
             pauseButton.onClick.RemoveListener(OnPauseButtonClicked);
@@ -67,9 +75,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             secondsNext.onClick.RemoveListener(Seek15SecNext);
             setPlaybackSpeedButton.onClick.RemoveListener(OnSetPlaybackSpeedClicked);
             ipButton.onClick.RemoveListener(IpButtonClickEvent);
+            refreshButton.onClick.RemoveListener(RefreshButtonClickEvent);
             BootstrapManager.OnClientDisconnected -= OnClientDisconnected;
             BootstrapManager.OnClientConnected -= SuccessCallBack;
+            loopToggle.onValueChanged.RemoveListener(OnLoopToggleValueChanged);
         }
+
 
         private void Start() {
             if (PlayerPrefs.HasKey("ip")) {
@@ -79,7 +90,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 ipPanel.SetActive(true);
             }
         }
-
         private void IpButtonClickEvent() {
             if (!string.IsNullOrEmpty(ipText.text)) {
                 autoConnectText.text = "Connecting...";
@@ -90,7 +100,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 autoConnectPanel.SetActive(false);
             }
         }
-
         private void SuccessCallBack(bool connected) {
             if (!connected) {
                 ipErrorText.text = "Cannot connect to the server. Enter correct IP address.";
@@ -100,7 +109,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 StartCoroutine(ConnectionSuccessful());
             }
         }
-        
         private IEnumerator ConnectionSuccessful() {
             yield return new WaitForSeconds(2f);
             autoConnectText.text = "Connected";
@@ -108,14 +116,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             ipPanel.SetActive(false);
             autoConnectPanel.SetActive(false);
         }
-        
         private void OnClientDisconnected() {
             ipPanel.SetActive(true);
             autoConnectPanel.SetActive(false);
             ipErrorText.text = "Disconnected";
         }
-
-
+#if UNITY_EDITOR || UNITY_STANDALONE
         public void Update() {
             if (Input.GetKeyDown(KeyCode.Space)) {
                 _isPlaying = !_isPlaying;
@@ -153,7 +159,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
         }
-
+#endif
         private void OnPlayButtonClicked() {
             pauseButton.gameObject.SetActive(true);
             playButton.gameObject.SetActive(false);
@@ -170,10 +176,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.Stop);
         }
 
-        public void OnSeekButtonClicked(float time) {
-            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Seek}{Commands.Separator}{time}");
-        }
-
         private void OnToggleMuteClicked() {
             muteButton.gameObject.SetActive(!muteButton.gameObject.activeSelf);
             unmuteButton.gameObject.SetActive(!unmuteButton.gameObject.activeSelf);
@@ -181,6 +183,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnRestartButtonClicked() {
+            pauseButton.gameObject.SetActive(true);
+            playButton.gameObject.SetActive(false);
             BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.Restart);
         }
 
@@ -216,17 +220,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-
         private void OnSetPlaybackSpeedClicked() {
 
-            if (_playbackSpeedIndex == _playbackspeeds.Length) {
+            if (_playbackSpeedIndex == _playbackSpeeds.Length) {
                 _playbackSpeedIndex = 0;
             } else {
                 _playbackSpeedIndex += 1;
             }
-            setPlaybackSpeedButtonText.text = $"x{_playbackspeeds[_playbackSpeedIndex]}";
+            setPlaybackSpeedButtonText.text = $"x{_playbackSpeeds[_playbackSpeedIndex]}";
 
-            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackspeeds[_playbackSpeedIndex]}");
+            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackSpeeds[_playbackSpeedIndex]}");
         }
 
         // Called from WindowsPlayer when UpdateProgressClientRpc runs on this client
@@ -234,7 +237,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             if (!_isDraggingSlider) {
                 progressSlider.maxValue = (float)length;
                 progressSlider.value = (float)currentTime;
-                sliderText.text = $"{(int)progressSlider.value} / {(int)progressSlider.maxValue}";
+                sliderText.text = $"{ConvertSecondsToMinutes((int)progressSlider.value)} / {ConvertSecondsToMinutes((int)progressSlider.maxValue)}";
             }
         }
 
@@ -251,8 +254,47 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Seek}{Commands.Separator}{time}");
         }
 
-        public void SetVideoName(string vName) {
-            videoName.text = vName;
+        public void SetVideoName(VideoContainerList vName, string ind) {
+            for (int i = 0; i < vName.videoContainerList.Count; i++) {
+                VideoContainer videoPlayerController = vName.videoContainerList[i];
+                ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
+                buttonController.Init(videoPlayerController.folderName, i);
+                _buttonControllerList.Add(buttonController);
+            }
+            try {
+                int index = int.Parse(ind);
+                if (index >= 0 && index < vName.videoContainerList.Count) {
+                    _buttonControllerList[index].HighLightButton();
+                }
+            } catch (Exception e) {
+                LogError(e);
+                throw;
+            }
+        }
+
+        public void PlayThisVideo(string folderName, int index) {
+            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.PlayThisVideo}{Commands.Separator}{folderName}");
+            OnRestartButtonClicked();
+            HighLightThisButton(index.ToString());
+        }
+
+        private void RefreshButtonClickEvent() {
+            BootstrapManager.Instance.DisconnectClient();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        private void OnLoopToggleValueChanged(bool arg0) {
+            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Loop}{Commands.Separator}{arg0}");
+        }
+        public void HighLightThisButton(string s) {
+            int index = int.Parse(s);
+            for (int i = 0; i < _buttonControllerList.Count; i++) {
+                if (index == i) {
+                    _buttonControllerList[i].HighLightButton();
+                } else {
+                    _buttonControllerList[i].DeHighLightButton();
+                }
+            }
         }
     }
 }

@@ -19,28 +19,37 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public static BootstrapManager Instance { get; private set; }
 
         public bool isThisWindows;
-        public UIController uiController;
+
         public static Action OnClientDisconnected;
         public static Action<bool> OnClientConnected;
         private bool _isConnected;
 
         private UnityTransport _transport;
         private NetworkManager _networkManager;
+        private ulong _clientid;
         [HideInInspector] public NetworkMediator networkObject;
         private void Awake() {
-            Instance = this;
+            if (Instance == null) {
+                Instance = this;
+            } else {
+                Destroy(gameObject);
+            }
             _networkManager = NetworkManager.Singleton;
             _transport = GetComponent<UnityTransport>();
         }
 
         private void OnEnable() {
-            _networkManager.OnClientConnectedCallback += OnClientConnectedToServer;
-            _networkManager.OnClientDisconnectCallback += NetworkManagerOnOnClientDisconnectCallback;
+            if (_networkManager) {
+                _networkManager.OnClientConnectedCallback += OnClientConnectedToServer;
+                _networkManager.OnClientDisconnectCallback += NetworkManagerOnOnClientDisconnectCallback;
+            }
         }
 
         private void OnDisable() {
-            _networkManager.OnClientConnectedCallback -= OnClientConnectedToServer;
-            _networkManager.OnClientDisconnectCallback -= NetworkManagerOnOnClientDisconnectCallback;
+            if (_networkManager) {
+                _networkManager.OnClientConnectedCallback -= OnClientConnectedToServer;
+                _networkManager.OnClientDisconnectCallback -= NetworkManagerOnOnClientDisconnectCallback;
+            }
         }
         private void NetworkManagerOnOnClientDisconnectCallback(ulong obj) {
             if (_isConnected) {
@@ -55,6 +64,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 StopCoroutine(CheckForConnection());
                 OnClientConnected?.Invoke(true);
                 AndroidPlayer.Instance.GetVideoName();
+                _clientid = obj;
             }
         }
 
@@ -64,6 +74,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _ = _networkManager.StartHost();
             }
         }
+
+        public void DisconnectClient() {
+            _networkManager.Shutdown();
+        }
+
         public void Connect(string ipTextText) {
             _transport.SetConnectionData(ipTextText, 7777);
             _networkManager.StartClient();

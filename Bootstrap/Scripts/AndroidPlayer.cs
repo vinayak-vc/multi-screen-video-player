@@ -1,10 +1,10 @@
-﻿using System;
+﻿using static Modules.Utility.Utility;
 
 using UnityEngine;
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class AndroidPlayer : MonoBehaviour {
         public static AndroidPlayer Instance;
-
+        public UIController uiController;
         private void Awake() {
             Instance = this;
         }
@@ -13,10 +13,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             string[] commandData = command.Split(Commands.Separator);
             switch (commandData[0]) {
                 case Commands.SliderData:
-                    BootstrapManager.Instance.uiController.SetProgress(double.Parse(commandData[1]), double.Parse(commandData[2]));
+                    uiController.SetProgress(double.Parse(commandData[1]), double.Parse(commandData[2]));
                     break;
                 case Commands.NameVideo:
-                    BootstrapManager.Instance.uiController.SetVideoName(commandData[1]);
+                    Log($"Executing Command : {command}");
+                    uiController.SetVideoName(JsonUtility.FromJson<VideoContainerList>(commandData[1]), commandData[2]);
+                    break;
+                case Commands.PlayThisVideo:
+                    Log($"Executing Command : {command}");
+                    uiController.HighLightThisButton(commandData[1]);
                     break;
             }
         }

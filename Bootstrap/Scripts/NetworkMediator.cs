@@ -22,7 +22,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         // RPC to send the command to the server (Windows app)
         [ServerRpc]
         private void SubmitCommandServerRpc(string command, ServerRpcParams rpcParams = default) {
-            Log($"Executing Command : {command}");
+            
             if (WindowsPlayer.Instance) {
                 WindowsPlayer.Instance.ExecuteCommand(command);
             }
@@ -36,7 +36,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [ClientRpc]
         private void SubmitCommandClientRpc(string command, ClientRpcParams rpcParams = default) {
             if (AndroidPlayer.Instance) {
-                Log($"Executing Command : {command}");
                 AndroidPlayer.Instance.ExecuteCommand(command);
             }
         }
