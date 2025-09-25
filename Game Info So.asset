@@ -19,9 +19,9 @@ MonoBehaviour:
     gameID: multi-screen-video-player
     repoPath: https://github.com/vinayak-vc/multi-screen-video-player.git
     scenes:
-    - active: 0
-      scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
     - active: 1
+      scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
+    - active: 0
       scene: {fileID: 102900000, guid: 655bc7fbd4800ee4db6500f820532804, type: 3}
     photonID: 
     agoraID: 
@@ -68,11 +68,11 @@ MonoBehaviour:
       alwaysIncludedShaders: []
       alwaysIncludedShadersVariantsCollection: []
     properties:
-      title: Phygital Video Player Controller
+      title: Phygital Video Player
       companyName: ViitorCloud
       bundleId: com.vc.phygital.video.player
       version: 1.0.0
-      versionCode: 2
+      versionCode: 3
       icon: {fileID: 2800000, guid: 7b5ad3ce0a326344fad1f391a681e97d, type: 3}
       splashScreenLogo: {fileID: 0}
       splashScreenLogoBg: {fileID: 0}

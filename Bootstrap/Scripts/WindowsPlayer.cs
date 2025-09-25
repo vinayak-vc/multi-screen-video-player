@@ -117,10 +117,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             _videoPathJsonString = JsonUtility.ToJson(containerList);
-            Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
+            Debug.Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
         }
         public void ExecuteCommand(string command) {
-            Log($"Executing Command : {command}");
+            Debug.Log($"Executing Command : {command}");
             string[] parts = command.Split(Commands.Separator);
             switch (parts[0]) {
                 case Commands.Play:
@@ -176,7 +176,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     videoPlayerController.Play();
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;
-                    Log("Playing video: " + folderName, videoPlayerController);
+                    Debug.Log("Playing video: " + folderName, videoPlayerController);
                 } else {
                     videoPlayerController.Stop();
                 }
@@ -185,7 +185,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public void PlayNextVideo() {
             _index = (_index + 1) % _videoContainerList.Count;
-            Log(_index + "");
+            Debug.Log(_index + "");
             PlayThisVideo(_videoContainerList[_index].GetFolderName());
             BootstrapManager.Instance.networkObject.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
         }
