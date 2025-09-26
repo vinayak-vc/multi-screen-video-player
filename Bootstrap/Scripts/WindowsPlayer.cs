@@ -15,13 +15,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
     public class WindowsPlayer : MonoBehaviour {
         public static WindowsPlayer Instance { get; private set; }
 
-        private readonly string[] _videoExtensions = {
+        public static readonly string[] VideoExtensions = {
             ".mp4"
         };
-        private readonly string[] _audioExtensions = {
+        public static readonly string[] AudioExtensions = {
             ".wav", ".mp3"
         };
-
+        [SerializeField] private WindowsUIController windowsUIController;
         [SerializeField] private VideoPlayerController videoContainerPrefab;
         private readonly List<VideoPlayerController> _videoContainerList = new List<VideoPlayerController>();
 
@@ -39,69 +39,33 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             } else {
                 Destroy(gameObject);
             }
-            FillVideoContainerList();
-
         }
-        private void Start() {
-            // Check if multiple displays exist
-            for (int i = 1; i < Display.displays.Length; i++) {
-                // Activate additional displays
-                Display.displays[i].Activate();
-            }
-
-            _index = -1;
-            PlayNextVideo();
-            StartCoroutine(StartContinuouslyUpdateProgress());
-        }
-        private void FixedUpdate() {
+        private void Update() {
             ipAddress.gameObject.SetActive(Input.GetKey(KeyCode.F5));
+
+            if (Input.GetKeyDown(KeyCode.F4)) {
+                windowsUIController.addNewPanel.SetActive(!windowsUIController.addNewPanel.activeInHierarchy);
+                if (_currentVideoPlayerController != null) {
+                    if (windowsUIController.addNewPanel.activeInHierarchy) {
+                        _currentVideoPlayerController.Pause();
+                    } else {
+                        _currentVideoPlayerController.Play();
+                    }
+                }
+            }
         }
         private IEnumerator StartContinuouslyUpdateProgress() {
             while (true) {
                 if (_currentVideoPlayerController != null && _currentVideoPlayerController.GetIsPrepared() && _currentVideoPlayerController.GetIsPlaying()) {
                     UpdateProgress(_currentVideoPlayerController.GetTime(), _currentVideoPlayerController.GetLength());
                 }
-                // if (_currentVideoPlayerController != null && _currentVideoPlayerController.GetTime() != -1 && _loop) {
-                //     if (_currentVideoPlayerController.GetLength() == _currentVideoPlayerController.GetTime()) {
-                //         PlayNextVideo();
-                //     }
-                // }
                 yield return new WaitForSecondsRealtime(1);
             }
         }
-        private void FillVideoContainerList() {
-            string path = Application.streamingAssetsPath;
-            if (!Directory.Exists(path)) {
-                Debug.LogError("StreamingAssets path not found: " + path);
-                return;
-            }
-            VideoContainerList containerList = new VideoContainerList();
-            string[] subFolders = Directory.GetDirectories(path);
-            foreach (string folder in subFolders) {
-                List<string> videos = new List<string>();
-                string audioPath = null;
-
-                string[] files = Directory.GetFiles(folder);
-                string[] sortedFiles = files.OrderBy(Path.GetFileName).ToArray();
-
-                foreach (string file in sortedFiles) {
-                    string ext = Path.GetExtension(file).ToLower();
-                    if (Array.Exists(_videoExtensions, e => e == ext)) {
-                        videos.Add(file);
-                    }
-                    if (audioPath == null && Array.Exists(_audioExtensions, e => e == ext) && File.Exists(file)) {
-                        audioPath = file;
-                    } else {
-                        audioPath = string.Empty;
-                    }
-                }
-
-                VideoContainer videoContainer = new VideoContainer {
-                    folderName = Path.GetFileName(folder),
-                    videoPath = videos.ToArray(),
-                    audioPath = audioPath
-                };
-                containerList.videoContainerList.Add(videoContainer);
+        public void FillVideoContainerList(VideoContainerList containerList) {
+            // Check if multiple displays exist
+            for (int i = 1; i < Display.displays.Length; i++) {
+                Display.displays[i].Activate();
             }
 
             foreach (VideoContainer videoContainer in containerList.videoContainerList) {
@@ -117,10 +81,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             _videoPathJsonString = JsonUtility.ToJson(containerList);
-            Debug.Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
+            Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
+
+            _index = -1;
+            PlayNextVideo();
+            StartCoroutine(StartContinuouslyUpdateProgress());
+
         }
         public void ExecuteCommand(string command) {
-            Debug.Log($"Executing Command : {command}");
+            Log($"Executing Command : {command}");
             string[] parts = command.Split(Commands.Separator);
             switch (parts[0]) {
                 case Commands.Play:
@@ -169,49 +138,51 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             this._loop = bool.Parse(loop);
         }
 
-        private void PlayThisVideo(string folderName) {
+        public void PlayThisVideo(string folderName) {
             for (int i = 0; i < _videoContainerList.Count; i++) {
                 VideoPlayerController videoPlayerController = _videoContainerList[i];
                 if (videoPlayerController.GetFolderName() == folderName) {
                     videoPlayerController.Play();
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;
-                    Debug.Log("Playing video: " + folderName, videoPlayerController);
+                    windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
+                    Log("Playing video: " + folderName, videoPlayerController);
                 } else {
                     videoPlayerController.Stop();
+                    windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].DeHighLightButton();
                 }
             }
         }
 
         public void PlayNextVideo() {
             _index = (_index + 1) % _videoContainerList.Count;
-            Debug.Log(_index + "");
+            Log(_index + "");
             PlayThisVideo(_videoContainerList[_index].GetFolderName());
-            BootstrapManager.Instance.networkObject.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
         }
 
         private void NameVideo() {
             UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
-            BootstrapManager.Instance.networkObject.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
         }
 
         // Play the video
 
         private void UpdateProgress(double currentTime, double length) {
-            BootstrapManager.Instance.networkObject.SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
+            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
         }
 
 
         public IEnumerator PlayAudioFromFile(string filePath, Action<AudioClip> onAudioClipLoaded) {
-            string ext = System.IO.Path.GetExtension(filePath).ToLower();
+            string ext = Path.GetExtension(filePath).ToLower();
             if (ext == ".wav") {
                 byte[] wavData = System.IO.File.ReadAllBytes(filePath);
-                AudioClip audioClip = CreateWavClip(wavData, "AudioClip");
+                AudioClip audioClip = CreateWavClip(wavData, Path.GetFileNameWithoutExtension(filePath));
                 if (audioClip != null) {
-                    Debug.Log("Playing WAV audio...");
+                    Log("Playing WAV audio...");
                     onAudioClipLoaded.Invoke(audioClip);
                 } else {
-                    Debug.LogError("Error loading WAV file.");
+                    LogError("Error loading WAV file.");
                 }
                 yield break; // No need to yield for wav
             } else {
@@ -220,10 +191,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
                     if (www.result == UnityWebRequest.Result.Success) {
                         AudioClip audioClip = DownloadHandlerAudioClip.GetContent(www);
-                        Debug.Log("Playing MP3 audio...");
+                        Log("Playing MP3 audio...");
                         onAudioClipLoaded.Invoke(audioClip);
                     } else {
-                        Debug.LogError("Error loading MP3: " + www.error);
+                        LogError("Error loading MP3: " + www.error);
                     }
                 }
             }

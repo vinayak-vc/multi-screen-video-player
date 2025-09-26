@@ -26,6 +26,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
     [Serializable]
     public class VideoContainer {
         public string folderName;
+        public string folderPath;
         public string[] videoPath;
         public string audioPath;
     }

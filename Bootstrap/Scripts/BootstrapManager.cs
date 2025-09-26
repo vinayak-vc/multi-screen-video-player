@@ -26,8 +26,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private UnityTransport _transport;
         private NetworkManager _networkManager;
-        private ulong _clientid;
-        [HideInInspector] public NetworkMediator networkObject;
+        [HideInInspector][CanBeNull] public NetworkMediator networkObject;
         private void Awake() {
             if (Instance == null) {
                 Instance = this;
@@ -64,7 +63,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 StopCoroutine(CheckForConnection());
                 OnClientConnected?.Invoke(true);
                 AndroidPlayer.Instance.GetVideoName();
-                _clientid = obj;
             }
         }
 
