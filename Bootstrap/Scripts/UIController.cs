@@ -8,6 +8,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+using ViitorCloud.Utility.PopupManager;
+
 using static Modules.Utility.Utility;
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
@@ -163,29 +165,29 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void OnPlayButtonClicked() {
             pauseButton.gameObject.SetActive(true);
             playButton.gameObject.SetActive(false);
-            BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.Play);
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(Commands.Play);
         }
 
         private void OnPauseButtonClicked() {
             pauseButton.gameObject.SetActive(false);
             playButton.gameObject.SetActive(true);
-            BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.Pause);
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(Commands.Pause);
         }
 
         private void OnStopButtonClicked() {
-            BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.Stop);
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(Commands.Stop);
         }
 
         private void OnToggleMuteClicked() {
             muteButton.gameObject.SetActive(!muteButton.gameObject.activeSelf);
             unmuteButton.gameObject.SetActive(!unmuteButton.gameObject.activeSelf);
-            BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.ToggleMute);
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(Commands.ToggleMute);
         }
 
         private void OnRestartButtonClicked() {
             pauseButton.gameObject.SetActive(true);
             playButton.gameObject.SetActive(false);
-            BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.Restart);
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(Commands.Restart);
         }
 
         private void Seek15SecNext() {
@@ -229,7 +231,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
             setPlaybackSpeedButtonText.text = $"x{_playbackSpeeds[_playbackSpeedIndex]}";
 
-            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackSpeeds[_playbackSpeedIndex]}");
+            BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackSpeeds[_playbackSpeedIndex]}");
         }
 
         // Called from WindowsPlayer when UpdateProgressClientRpc runs on this client
@@ -251,10 +253,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void SendSeekCommand(float time) {
-            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Seek}{Commands.Separator}{time}");
+            BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.Seek}{Commands.Separator}{time}");
         }
 
         public void SetVideoName(VideoContainerList vName, string ind) {
+
+            if (vName?.videoContainerList == null || vName.videoContainerList.Count == 0) {
+                PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder from the Computer and Restart Application.");
+                return;
+            }
+            
             for (int i = 0; i < vName.videoContainerList.Count; i++) {
                 VideoContainer videoPlayerController = vName.videoContainerList[i];
                 ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
@@ -268,12 +276,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
             } catch (Exception e) {
                 LogError(e);
-                throw;
             }
         }
 
         public void PlayThisVideo(string folderName, int index) {
-            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.PlayThisVideo}{Commands.Separator}{folderName}");
+            BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.PlayThisVideo}{Commands.Separator}{folderName}");
             OnRestartButtonClicked();
             HighLightThisButton(index.ToString());
         }
@@ -284,7 +291,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnLoopToggleValueChanged(bool arg0) {
-            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Loop}{Commands.Separator}{arg0}");
+            BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.Loop}{Commands.Separator}{arg0}");
         }
         public void HighLightThisButton(string s) {
             int index = int.Parse(s);
