@@ -23,6 +23,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private VideoContainer _videoContainer;
         private VideoContainerList _videoContainerList;
         private string _jsonPath;
+        private bool _isFirstTime;
 
         private async void Start() {
             FolderObjectList = new Dictionary<string, FolderObjects>();
@@ -36,7 +37,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 };
             } else {
                 await CreateFile(_jsonPath);
-
             }
 
             StreamingAssetScan();
@@ -51,6 +51,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _videoContainerList = new VideoContainerList {
                     videoContainerList = new List<VideoContainer>()
                 };
+                _isFirstTime = true;
+                addNewPanel.SetActive(true);
+                PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by click on 'Add New Folder' Button");
             }
         }
 
@@ -66,6 +69,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             string dir = FileExplorer.OpenFolder(PlayerPrefs.GetString(nameof(dir), Application.streamingAssetsPath));
             PlayerPrefs.SetString(nameof(dir), dir);
             FillVideoContainerList(dir, true);
+            if (_isFirstTime) {
+                _isFirstTime = true;
+                if (FolderObjectList.Count > 0) {
+                    WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
+                }
+            }
         }
 
         private void StreamingAssetScan() {
@@ -105,7 +114,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 audioPath = audioPath
             };
 
-            if (_videoContainerList.videoContainerList.Find(x => x.folderName == videoContainer.folderName) == null || !addToTheList) {
+            if (_videoContainerList.videoContainerList.Find(x => x.folderName == videoContainer.folderName) == null || (!addToTheList && !FolderObjectList.ContainsKey(videoContainer.folderName))) {
                 FolderObjectList.Add(videoContainer.folderName, Instantiate(folderObjectPrefab, folderParent).Init(videoContainer, this));
                 if (addToTheList) {
                     _videoContainerList.videoContainerList.Add(videoContainer);
