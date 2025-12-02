@@ -8,14 +8,14 @@
 //
 // VBScript examples are available on the 3dtv.at website for download.
 
-using System;
+using System;   
 using System.Runtime.InteropServices;
 
 
 namespace StereoPlayer {
     [ComVisible(true)]
     [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
-    [Guid("54150FC5-F6D5-419A-BC0D-E2BE08558934")]
+    [Guid("73B28B6E-D306-4589-B032-9ED17AA4D182")]
     [TypeLibType(TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FDual | TypeLibTypeFlags.FOleAutomation)]
     public interface IAutomation {
         /// <summary>
