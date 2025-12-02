@@ -60,6 +60,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void Start() {
             if (ssPlayer) {
                 stereoComController = new StereoscopicComController();
+                stereoComController.Connect();
             }
         }
 
