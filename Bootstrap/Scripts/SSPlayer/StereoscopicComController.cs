@@ -87,5 +87,17 @@ namespace StereoscopicComControl {
                 _playerCom = null;
             }
         }
+
+        public void ToggleMute() {
+            throw new NotImplementedException();
+        }
+
+        public void Seek(double seekTime) {
+            throw new NotImplementedException();
+        }
+
+        public void SetPlaybackSpeed(float result) {
+            throw new NotImplementedException();
+        }
     }
 }
