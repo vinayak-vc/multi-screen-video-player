@@ -10,21 +10,13 @@ namespace StereoscopicComControl {
         public bool IsConnected => _playerCom != null;
 
         public bool Connect() {
-            if (_playerCom != null)
-                return true;
-
-            // 1. Try to attach to a running instance
-            Type playerType = Type.GetTypeFromProgID("StereoPlayer.Automation");
-            IAutomation player = (IAutomation)Activator.CreateInstance(playerType);
-            if (player == null)
-                return false; // ProgID not registered
-
             try {
-                // Creates or gets a running COM instance, depending on implementation
-                _playerCom = player;
+                Guid clsid = new Guid("54150FC5-F6D5-419A-BC0D-E2BE08558934"); // example CLSID, replace with actual if different
+                Type comType = Type.GetTypeFromCLSID(clsid);
+                _playerCom = (IAutomation)Activator.CreateInstance(comType);
                 return true;
-            } catch (Exception) {
-                _playerCom = null;
+            } catch (Exception e) {
+                UnityEngine.Debug.LogError("COM Activation failed: " + e.Message);
                 return false;
             }
         }
