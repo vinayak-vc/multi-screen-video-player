@@ -274,5 +274,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public string GetFolderPath() {
             return _container.folderPath;
         }
+        
+        public VideoContainer GetContainer() {
+            return _container;
+        }
     }
 }

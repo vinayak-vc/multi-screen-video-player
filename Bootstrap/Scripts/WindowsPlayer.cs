@@ -213,11 +213,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
 
                 case Commands.NameVideo:
-                    NameVideo();
+                    NameVideoSS();
                     return;
 
                 case Commands.PlayThisVideo:
-                    PlayThisVideo(args[0]);
+                    PlayThisVideoSSPlayer(args[0]);
                     return;
                 case Commands.Loop:
                     LoopChange(args[0]);
@@ -227,6 +227,26 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void LoopChange(string loop) {
             this._loop = bool.Parse(loop);
+        }
+
+        public void PlayThisVideoSSPlayer(string folderName, bool sendDataToAndroid = false) {
+            for (int i = 0; i < _videoContainerList.Count; i++) {
+                VideoPlayerController videoPlayerController = _videoContainerList[i];
+                if (videoPlayerController.GetFolderName() == folderName) {
+                    VideoContainer videoContainer = videoPlayerController.GetContainer();
+                    stereoComController.OpenLeftRightFiles(videoContainer.videoPath[0], videoContainer.videoPath[1], videoContainer.audioPath);
+                    _currentVideoPlayerController = videoPlayerController;
+                    _index = i;
+                    windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
+                    Log("Playing video: " + folderName, videoPlayerController);
+                    if (sendDataToAndroid) {
+                        BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+                    }
+                } else {
+                    videoPlayerController.Stop();
+                    windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].DeHighLightButton();
+                }
+            }
         }
 
         public void PlayThisVideo(string folderName, bool sendDataToAndroid = false) {
@@ -258,6 +278,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void NameVideo() {
+            UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
+            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+        }
+        
+        private void NameVideoSS() {
             UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
             BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
         }

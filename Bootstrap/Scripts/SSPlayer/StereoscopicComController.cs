@@ -5,7 +5,7 @@ using StereoPlayer;
 
 namespace StereoscopicComControl {
     public class StereoscopicComController : IDisposable {
-        private dynamic _playerCom;
+        private IAutomation _playerCom;
 
         public bool IsConnected => _playerCom != null;
 
@@ -33,22 +33,23 @@ namespace StereoscopicComControl {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
 
             // Adjust method name & parameters according to official automation docs
-            _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, 1);
+            _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, AudioMode.SeparateFile);
+            Play();
         }
 
         public void Play() {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(0);
+            _playerCom.SetPlaybackState(PlaybackState.Play);
         }
 
         public void Pause() {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(1);
+            _playerCom.SetPlaybackState(PlaybackState.Pause);
         }
 
         public void Stop() {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(2);
+            _playerCom.SetPlaybackState(PlaybackState.Stop);
         }
 
         bool isMuted = false;
