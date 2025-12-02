@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.AccessControl;
 
 using StereoscopicComControl;
@@ -283,7 +284,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
             BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
         }
-        
+
         private void NameVideoSS() {
             UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
             BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
@@ -338,6 +339,17 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             audioClip.SetData(data, 0);
 
             return audioClip;
+        }
+
+        [ContextMenu("Main")]
+        void Main() {
+            //Type t = Type.GetTypeFromProgID("StereoscopicPlayer.Automation");
+            //var obj = Activator.CreateInstance(t);
+
+            Guid clsid = new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182"); // example CLSID, replace with actual if different
+            Type comType = Type.GetTypeFromCLSID(clsid);
+            dynamic obj = Activator.CreateInstance(comType);
+            StereoscopicComController.InvokeCom(obj, "OpenLeftRightFiles", @"C:\Users\FUTUROTEC\Videos\Captures\Adani Mining Operations  VR 2025-11-25 10-57-07.mp4", @"C:\Users\FUTUROTEC\Videos\Captures\adani-diesel-oprated-drill-unity - Parking - Windows, Mac, Linux - Unity 6.0 (6000.0.61f1) _DX11_ 2025-11-08 17-23-33.mp4", "", 2);
         }
     }
 }
