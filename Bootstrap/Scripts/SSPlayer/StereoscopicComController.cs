@@ -1,19 +1,19 @@
 using System;
 
 using StereoPlayer;
-
+using System.Runtime.InteropServices;
 
 namespace StereoscopicComControl {
     public class StereoscopicComController : IDisposable {
-        private IAutomation _playerCom;
+        private dynamic _playerCom;
 
         public bool IsConnected => _playerCom != null;
 
         public bool Connect() {
             try {
-                Guid clsid = new Guid("54150FC5-F6D5-419A-BC0D-E2BE08558934"); // example CLSID, replace with actual if different
+                Guid clsid = new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182"); // example CLSID, replace with actual if different
                 Type comType = Type.GetTypeFromCLSID(clsid);
-                _playerCom = (IAutomation)Activator.CreateInstance(comType);
+                _playerCom = Activator.CreateInstance(comType);
                 return true;
             } catch (Exception e) {
                 UnityEngine.Debug.LogError("COM Activation failed: " + e.Message);
