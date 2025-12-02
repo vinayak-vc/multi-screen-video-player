@@ -100,5 +100,13 @@ namespace StereoscopicComControl {
                 _player = null;
             }
         }
+
+        public void ToggleMute() {
+            throw new NotImplementedException();
+        }
+
+        public void SetPlaybackSpeed(float result) {
+            throw new NotImplementedException();
+        }
     }
 }
