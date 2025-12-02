@@ -25,23 +25,23 @@ namespace StereoscopicComControl {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
 
             // Adjust method name & parameters according to official automation docs
-            _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, AudioMode.SeparateFile);
+            _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, 1);
             Play();
         }
 
         public void Play() {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(PlaybackState.Play);
+            _playerCom.SetPlaybackState(0);
         }
 
         public void Pause() {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(PlaybackState.Pause);
+            _playerCom.SetPlaybackState(1);
         }
 
         public void Stop() {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(PlaybackState.Stop);
+            _playerCom.SetPlaybackState(2);
         }
 
         bool isMuted = false;
