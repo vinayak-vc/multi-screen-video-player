@@ -1,18 +1,17 @@
 using System;
-
-using StereoPlayer;
-
-using System.Runtime.InteropServices;
+using System.Collections.Concurrent;
 using System.Threading;
-
+using System.Runtime.InteropServices;
 
 namespace StereoscopicComControl {
+
     public class StereoscopicComController : IDisposable {
+
         private dynamic _playerCom;
         private Thread _staThread;
+        private BlockingCollection<Action> _queue = new();
         private AutoResetEvent _ready = new(false);
-        private AutoResetEvent _signal = new(false);
-        private Action _action;
+        private bool _running = true;
 
         public void Connect() {
             _staThread = new Thread(StaLoop);
@@ -23,89 +22,68 @@ namespace StereoscopicComControl {
         }
 
         private void StaLoop() {
-            var clsid = new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182");
-            var type = Type.GetTypeFromCLSID(clsid);
-            _playerCom = Activator.CreateInstance(type);
+            try {
+                var clsid = new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182");
+                var type = Type.GetTypeFromCLSID(clsid);
+                _playerCom = Activator.CreateInstance(type);
 
-            _ready.Set();
+                _ready.Set();
 
-            while (true) {
-                _signal.WaitOne();
-                _action?.Invoke();
+                while (_running) {
+                    var action = _queue.Take();
+                    action();
+                }
+            }
+            catch (Exception e) {
+                UnityEngine.Debug.LogError("STA COM thread crashed: " + e);
             }
         }
 
-        private void Invoke(Action action) {
-            _action = action;
-            _signal.Set();
+        private void Enqueue(Action action) {
+            if (_playerCom == null)
+                throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
+            _queue.Add(action);
         }
 
-        public void OpenLeftRightFiles(string leftVideo, string rightVideo, string audioPath) {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            Invoke(() => {
-                // Adjust method name & parameters according to official automation docs
-                _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, 1);
-                Play();
+        // ✅ Correct COM calls
+        public void OpenLeftRightFiles(string left, string right, string audio = "") {
+            Enqueue(() => {
+                _playerCom.OpenLeftRightFiles(left, right, audio, 1);
+                _playerCom.Play();
             });
         }
 
         public void Play() {
-            Invoke(() => {
-                if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-                _playerCom.SetPlaybackState(0);
-            });
+            Enqueue(() => _playerCom.Play());
         }
 
         public void Pause() {
-            Invoke(() => {
-                if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-                _playerCom.SetPlaybackState(1);
-            });
+            Enqueue(() => _playerCom.Pause());
         }
 
         public void Stop() {
-            Invoke(() => {
-                if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-                _playerCom.SetPlaybackState(2);
-            });
-        }
-
-        bool isMuted = false;
-        private float volume = 1;
-
-        public void ToggleMute() {
-            Invoke(() => {
-                if (isMuted) {
-                    _playerCom.SetVolume(1);
-                } else {
-                    _playerCom.SetVolume(0);
-                }
-                isMuted = !isMuted;
-            });
+            Enqueue(() => _playerCom.Stop());
         }
 
         public void Restart() {
-            Invoke(() => {
-                _playerCom.Replay();
+            Enqueue(() => _playerCom.Replay());
+        }
+
+        public void SetVolume(float volume01) {
+            Enqueue(() => {
+                int v = (int)(Math.Clamp(volume01, 0f, 1f) * 100);
+                _playerCom.SetVolume(v);
             });
         }
 
-        public void Seek(double seekTime) {
-            throw new NotImplementedException();
-        }
-
-        public void SetPlaybackSpeed(float result) {
-            throw new NotImplementedException();
-        }
-
         public void Dispose() {
+            _running = false;
+            _queue.Add(() => { });
+
             if (_playerCom != null) {
                 try {
-                    // Optional: tell player to quit if automation supports it
-                    // _playerCom.Quit();
-                } catch {
-                }
-
+                    Marshal.ReleaseComObject(_playerCom);
+                } catch { }
                 _playerCom = null;
             }
         }
