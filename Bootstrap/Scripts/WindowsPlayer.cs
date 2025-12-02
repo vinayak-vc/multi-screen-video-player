@@ -234,6 +234,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 VideoPlayerController videoPlayerController = _videoContainerList[i];
                 if (videoPlayerController.GetFolderName() == folderName) {
                     VideoContainer videoContainer = videoPlayerController.GetContainer();
+                    Log("Video 1 : " + videoContainer.videoPath[0]);
+                    Log("Video 2 : " + videoContainer.videoPath[1]);
                     stereoComController.OpenLeftRightFiles(videoContainer.videoPath[0], videoContainer.videoPath[1], videoContainer.audioPath);
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;

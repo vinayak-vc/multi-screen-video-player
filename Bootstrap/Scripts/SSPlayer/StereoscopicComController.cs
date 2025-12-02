@@ -1,63 +1,93 @@
 using System;
 
 using StereoPlayer;
+
 using System.Runtime.InteropServices;
+using System.Threading;
+
 
 namespace StereoscopicComControl {
     public class StereoscopicComController : IDisposable {
         private dynamic _playerCom;
+        private Thread _staThread;
+        private AutoResetEvent _ready = new(false);
+        private AutoResetEvent _signal = new(false);
+        private Action _action;
 
-        public bool IsConnected => _playerCom != null;
+        public void Connect() {
+            _staThread = new Thread(StaLoop);
+            _staThread.SetApartmentState(ApartmentState.STA);
+            _staThread.IsBackground = true;
+            _staThread.Start();
+            _ready.WaitOne();
+        }
 
-        public bool Connect() {
-            try {
-                Guid clsid = new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182"); // example CLSID, replace with actual if different
-                Type comType = Type.GetTypeFromCLSID(clsid);
-                _playerCom = Activator.CreateInstance(comType);
-                return true;
-            } catch (Exception e) {
-                UnityEngine.Debug.LogError("COM Activation failed: " + e.Message);
-                return false;
+        private void StaLoop() {
+            var clsid = new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182");
+            var type = Type.GetTypeFromCLSID(clsid);
+            _playerCom = Activator.CreateInstance(type);
+
+            _ready.Set();
+
+            while (true) {
+                _signal.WaitOne();
+                _action?.Invoke();
             }
+        }
+
+        private void Invoke(Action action) {
+            _action = action;
+            _signal.Set();
         }
 
         public void OpenLeftRightFiles(string leftVideo, string rightVideo, string audioPath) {
             if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-
-            // Adjust method name & parameters according to official automation docs
-            _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, 1);
-            Play();
+            Invoke(() => {
+                // Adjust method name & parameters according to official automation docs
+                _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, 1);
+                Play();
+            });
         }
 
         public void Play() {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(0);
+            Invoke(() => {
+                if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
+                _playerCom.SetPlaybackState(0);
+            });
         }
 
         public void Pause() {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(1);
+            Invoke(() => {
+                if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
+                _playerCom.SetPlaybackState(1);
+            });
         }
 
         public void Stop() {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(2);
+            Invoke(() => {
+                if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
+                _playerCom.SetPlaybackState(2);
+            });
         }
 
         bool isMuted = false;
         private float volume = 1;
 
         public void ToggleMute() {
-            if (isMuted) {
-                _playerCom.SetVolume(1);
-            } else {
-                _playerCom.SetVolume(0);
-            }
-            isMuted = !isMuted;
+            Invoke(() => {
+                if (isMuted) {
+                    _playerCom.SetVolume(1);
+                } else {
+                    _playerCom.SetVolume(0);
+                }
+                isMuted = !isMuted;
+            });
         }
 
         public void Restart() {
-            _playerCom.Replay();
+            Invoke(() => {
+                _playerCom.Replay();
+            });
         }
 
         public void Seek(double seekTime) {
