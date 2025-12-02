@@ -1,5 +1,7 @@
 using System;
 
+using StereoPlayer;
+
 
 namespace StereoscopicComControl {
     public class StereoscopicComController : IDisposable {
@@ -12,13 +14,14 @@ namespace StereoscopicComControl {
                 return true;
 
             // 1. Try to attach to a running instance
-            Type t = Type.GetTypeFromProgID("StereoPlayer.Automation");
-            if (t == null)
+            Type playerType = Type.GetTypeFromProgID("StereoPlayer.Automation");
+            IAutomation player = (IAutomation)Activator.CreateInstance(playerType);
+            if (player == null)
                 return false; // ProgID not registered
 
             try {
                 // Creates or gets a running COM instance, depending on implementation
-                _playerCom = Activator.CreateInstance(t);
+                _playerCom = player;
                 return true;
             } catch (Exception) {
                 _playerCom = null;
