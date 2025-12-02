@@ -8,13 +8,15 @@ using static Modules.Utility.Utility;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
+
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class VideoPlayerController : MonoBehaviour {
         [SerializeField] private Canvas canvasPrefab;
 
-        private readonly List<Canvas> _myCanvas = new List<Canvas>();
+        private readonly List<Canvas> _myCanvas = new();
         private VideoContainer _container;
-        private readonly List<VideoPlayer> _videoPlayerList = new List<VideoPlayer>();
+        private readonly List<VideoPlayer> _videoPlayerList = new();
 
         private AudioClip _audioClip;
         private AudioSource _audioSource;
@@ -23,8 +25,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             gameObject.name = container.folderName;
             _container = container;
             for (int i = 0; i < container.videoPath.Length; i++) {
-                RenderTexture renderTexture = new RenderTexture(Screen.width, Screen.height, 24);
-                GameObject videoPlayerPrefab = new GameObject();
+                RenderTexture renderTexture = new(Screen.width, Screen.height, 24);
+                GameObject videoPlayerPrefab = new();
                 videoPlayerPrefab.transform.SetParent(transform);
                 videoPlayerPrefab.transform.localPosition = Vector3.zero;
                 VideoPlayer videoContainer = videoPlayerPrefab.AddComponent<VideoPlayer>();
@@ -38,12 +40,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 videoContainer.url = container.videoPath[i];
                 videoContainer.audioOutputMode = VideoAudioOutputMode.None;
 
+
                 videoContainer.Prepare();
 
                 Canvas canvas = Instantiate(canvasPrefab, transform);
                 canvas.targetDisplay = i;
 
-                RawImage rawImage = canvas.transform.GetChild(0).GetComponent<RawImage>();
+                RawImage rawImage = canvas.transform.GetChild(0)
+                    .GetComponent<RawImage>();
                 rawImage.texture = renderTexture;
 
                 videoPlayerPrefab.name = Path.GetFileNameWithoutExtension(container.videoPath[i]) + " VideoPlayer";
@@ -62,26 +66,25 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     _audioSource.loop = true;
                 }));
             } else {
-                if (_videoPlayerList is { Count: > 1 }) {
-                    _videoPlayerList[0].audioOutputMode = VideoAudioOutputMode.Direct;
-                    _videoPlayerList[0].loopPointReached += OnLoopPointReached;
-                    _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
-                }
+                if (_videoPlayerList is not { Count: > 1 }) return;
+                _videoPlayerList[0].audioOutputMode = VideoAudioOutputMode.Direct;
+                _videoPlayerList[0].loopPointReached += OnLoopPointReached;
+                _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
             }
         }
-
 
         private void OnDisable() {
-            if (_videoPlayerList is { Count: > 1 }) {
-                _videoPlayerList[0].loopPointReached -= OnLoopPointReached;
-                _videoPlayerList[0].prepareCompleted -= OnPrepareCompleted;
-            }
+            if (_videoPlayerList is not { Count: > 1 }) return;
+            _videoPlayerList[0].loopPointReached -= OnLoopPointReached;
+            _videoPlayerList[0].prepareCompleted -= OnPrepareCompleted;
         }
+
         private void OnLoopPointReached(VideoPlayer source) {
             WindowsPlayer.Instance.PlayNextVideo();
         }
 
         private void OnPrepareCompleted(VideoPlayer source) {
+            source.frame = 0;
             Log("VideoPlayer Prepare Completed : " + source.name, source);
         }
 
@@ -97,11 +100,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                             videoPlayer.Prepare();
                         }
                         yield return new WaitUntil(() => videoPlayer.isPrepared);
-                        if (videoPlayer.isPrepared && !videoPlayer.isPlaying) {
-                            videoPlayer.Play();
-                            if (_audioClip) {
-                                _audioSource.Play();
-                            }
+                        if (!videoPlayer.isPrepared || videoPlayer.isPlaying) continue;
+                        videoPlayer.Play();
+                        if (_audioClip) {
+                            _audioSource.Play();
                         }
                     }
                 } else {
@@ -268,7 +270,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public string GetFolderName() {
             return _container.folderName;
         }
-        
+
         public string GetFolderPath() {
             return _container.folderPath;
         }

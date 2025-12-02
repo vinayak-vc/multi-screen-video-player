@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
+
+using StereoscopicComControl;
 
 using TMPro;
 
@@ -11,27 +14,39 @@ using static Modules.Utility.Utility;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class WindowsPlayer : MonoBehaviour {
-        public static WindowsPlayer Instance { get; private set; }
+        public static WindowsPlayer Instance {
+            get;
+            private set;
+        }
 
-        public static readonly string[] VideoExtensions = {
-            ".mp4"
-        };
-        public static readonly string[] AudioExtensions = {
-            ".wav", ".mp3"
-        };
-        [SerializeField] private WindowsUIController windowsUIController;
-        [SerializeField] private VideoPlayerController videoContainerPrefab;
+        public static readonly string[] VideoExtensions = { ".mp4" };
+        public static readonly string[] AudioExtensions = { ".wav", ".mp3" };
+
+        [SerializeField]
+        private WindowsUIController windowsUIController;
+
+        [SerializeField]
+        private VideoPlayerController videoContainerPrefab;
+
         private readonly List<VideoPlayerController> _videoContainerList = new List<VideoPlayerController>();
 
-        [SerializeField] private TextMeshProUGUI ipAddress;
-        [SerializeField] private Camera cameraPrefab;
+        [SerializeField]
+        private TextMeshProUGUI ipAddress;
+
+        [SerializeField]
+        private Camera cameraPrefab;
+
+        [SerializeField]
+        private bool ssPlayer;
 
         private bool _loop = true;
         private VideoPlayerController _currentVideoPlayerController;
         private string _videoPathJsonString;
         private int _index;
+        private StereoscopicComController stereoComController;
 
         private void Awake() {
             if (Instance == null) {
@@ -39,7 +54,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             } else {
                 Destroy(gameObject);
             }
+            ipAddress.text = IPManager.GetIP(ADDRESSFAM.IPv4);
         }
+
+        private void Start() {
+            if (ssPlayer) {
+                stereoComController = new StereoscopicComController();
+            }
+        }
+
         private void Update() {
             ipAddress.gameObject.SetActive(Input.GetKey(KeyCode.F5));
 
@@ -54,6 +77,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
             }
         }
+
         private IEnumerator StartContinuouslyUpdateProgress() {
             while (true) {
                 if (_currentVideoPlayerController != null && _currentVideoPlayerController.GetIsPrepared() && _currentVideoPlayerController.GetIsPlaying()) {
@@ -62,13 +86,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 yield return new WaitForSecondsRealtime(1);
             }
         }
+
         public void FillVideoContainerList(VideoContainerList containerList) {
             // Check if multiple displays exist
             for (int i = 1; i < Display.displays.Length; i++) {
                 Display.displays[i].Activate();
             }
 
-            foreach (VideoContainer videoContainer in containerList.videoContainerList) {
+            for (int index = 0; index < containerList.videoContainerList.Count; index++) {
+                VideoContainer videoContainer = containerList.videoContainerList[index];
                 VideoPlayerController videoPlayerController = Instantiate(videoContainerPrefab, transform);
                 videoPlayerController.Init(videoContainer);
                 _videoContainerList.Add(videoPlayerController);
@@ -86,12 +112,30 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             _index = -1;
             PlayNextVideo();
             StartCoroutine(StartContinuouslyUpdateProgress());
-
         }
+
         public void ExecuteCommand(string command) {
             Log($"Executing Command : {command}");
             string[] parts = command.Split(Commands.Separator);
-            switch (parts[0]) {
+            if (ssPlayer) {
+                if (parts.Length > 1) {
+                    ExecuteCommandSSVideoPlayer(parts[0], parts.Skip(1)
+                        .ToArray());
+                } else {
+                    ExecuteCommandSSVideoPlayer(parts[0]);
+                }
+            } else {
+                if (parts.Length > 1) {
+                    ExecuteCommandVideoPlayer(parts[0], parts.Skip(1)
+                        .ToArray());
+                } else {
+                    ExecuteCommandVideoPlayer(parts[0]);
+                }
+            }
+        }
+
+        public void ExecuteCommandVideoPlayer(string command, params string[] args) {
+            switch (command) {
                 case Commands.Play:
                     _currentVideoPlayerController.Play();
                     break;
@@ -109,14 +153,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     break;
 
                 case Commands.Seek: {
-                    if (parts.Length > 1 && double.TryParse(parts[1], out double seekTime)) {
+                    if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
                         _currentVideoPlayerController.Seek(seekTime);
                     }
                     break;
                 }
 
                 case Commands.SetPlaybackSpeed: {
-                    if (float.TryParse(parts[1], out float speed)) {
+                    if (float.TryParse(args[0], out float speed)) {
                         _currentVideoPlayerController.SetPlaybackSpeed(speed);
                     }
                     break;
@@ -127,18 +171,64 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     return;
 
                 case Commands.PlayThisVideo:
-                    PlayThisVideo(parts[1]);
+                    PlayThisVideo(args[0]);
                     return;
                 case Commands.Loop:
-                    LoopChange(parts[1]);
+                    LoopChange(args[0]);
                     return;
             }
         }
+
+        public void ExecuteCommandSSVideoPlayer(string command, params string[] args) {
+            switch (command) {
+                case Commands.Play:
+                    stereoComController.Play();
+                    break;
+                case Commands.Pause:
+                    stereoComController.Pause();
+                    break;
+                case Commands.Stop:
+                    stereoComController.Stop();
+                    break;
+                case Commands.ToggleMute:
+                    stereoComController.ToggleMute();
+                    break;
+                case Commands.Restart:
+                    stereoComController.Restart();
+                    break;
+
+                case Commands.Seek: {
+                    if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
+                        stereoComController.Seek(seekTime);
+                    }
+                    break;
+                }
+
+                case Commands.SetPlaybackSpeed: {
+                    if (float.TryParse(args[0], out float speed)) {
+                        stereoComController.SetPlaybackSpeed(speed);
+                    }
+                    break;
+                }
+
+                case Commands.NameVideo:
+                    NameVideo();
+                    return;
+
+                case Commands.PlayThisVideo:
+                    PlayThisVideo(args[0]);
+                    return;
+                case Commands.Loop:
+                    LoopChange(args[0]);
+                    return;
+            }
+        }
+
         private void LoopChange(string loop) {
             this._loop = bool.Parse(loop);
         }
 
-        public void PlayThisVideo(string folderName) {
+        public void PlayThisVideo(string folderName, bool sendDataToAndroid = false) {
             for (int i = 0; i < _videoContainerList.Count; i++) {
                 VideoPlayerController videoPlayerController = _videoContainerList[i];
                 if (videoPlayerController.GetFolderName() == folderName) {
@@ -147,6 +237,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     _index = i;
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
                     Log("Playing video: " + folderName, videoPlayerController);
+                    if (sendDataToAndroid) {
+                        if (false) {
+                        }
+                        BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+                    }
                 } else {
                     videoPlayerController.Stop();
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].DeHighLightButton();
@@ -166,15 +261,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
         }
 
-        // Play the video
-
         private void UpdateProgress(double currentTime, double length) {
             BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
         }
 
-
         public IEnumerator PlayAudioFromFile(string filePath, Action<AudioClip> onAudioClipLoaded) {
-            string ext = Path.GetExtension(filePath).ToLower();
+            string ext = Path.GetExtension(filePath)
+                .ToLower();
             if (ext == ".wav") {
                 byte[] wavData = System.IO.File.ReadAllBytes(filePath);
                 AudioClip audioClip = CreateWavClip(wavData, Path.GetFileNameWithoutExtension(filePath));
@@ -199,6 +292,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
             }
         }
+
         private AudioClip CreateWavClip(byte[] wavFile, string clipName = "AudioClip") {
             int headerSize = 44;
             if (wavFile.Length < headerSize) return null;

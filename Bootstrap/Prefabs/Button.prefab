@@ -65,10 +65,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Button
+  m_text: Intro
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 2ca2fbd6ff98b594dafd209f8fccf12e, type: 2}
+  m_sharedMaterial: {fileID: 2501925585500417822, guid: 2ca2fbd6ff98b594dafd209f8fccf12e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -274,7 +274,7 @@ MonoBehaviour:
   buttonText: {fileID: 7046988083051977260}
   button: {fileID: 8478755688154368978}
   variation1: {fileID: -6265136392211227296, guid: d519857469e368444b8b0c727a7f7c9a, type: 3}
-  variation2: {fileID: 5689686163183153533, guid: 160f89b7d9f560c4baac88c1fcbc03bd, type: 3}
+  variation2: {fileID: 21300000, guid: eb132b8e882461948be88cd09f207bf3, type: 3}
   highlightObject: {fileID: 6504939548334335508}
 --- !u!114 &6504939548334335508
 MonoBehaviour:

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,128 +11,147 @@ using ViitorCloud.Utility.PopupManager;
 
 using static Modules.Utility.Utility;
 
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class WindowsUIController : MonoBehaviour {
         public GameObject addNewPanel;
-
-        public Dictionary<string, FolderObjects> FolderObjectList;
-
         [SerializeField] private Button addNewButton;
         [SerializeField] private Transform folderParent;
         [SerializeField] private FolderObjects folderObjectPrefab;
 
-        private VideoContainer _videoContainer;
+        public Dictionary<string, FolderObjects> FolderObjectList {
+            get;
+            private set;
+        }
+
         private VideoContainerList _videoContainerList;
         private string _jsonPath;
         private bool _isFirstTime;
 
-        private async void Start() {
+        private void OnEnable() => addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
+        private void OnDisable() => addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
+
+        private void Awake() {
             FolderObjectList = new Dictionary<string, FolderObjects>();
-            _videoContainerList = new VideoContainerList {
-                videoContainerList = new List<VideoContainer>()
-            };
             _jsonPath = Path.Combine(Application.persistentDataPath, "videoContainerList.json");
-            if (File.Exists(_jsonPath)) {
-                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(await File.ReadAllTextAsync(_jsonPath)) ?? new VideoContainerList {
-                    videoContainerList = new List<VideoContainer>()
-                };
-            } else {
-                await CreateFile(_jsonPath);
-            }
+        }
+
+        private async void Start() {
+            await LoadOrInitializeVideoList();
 
             StreamingAssetScan();
 
-            if (_videoContainerList != null && _videoContainerList.videoContainerList.Count > 0) {
+            if (_videoContainerList.videoContainerList.Count > 0) {
+                // Restore existing folders
                 for (int index = 0; index < _videoContainerList.videoContainerList.Count; index++) {
-                    VideoContainer folders = _videoContainerList.videoContainerList[index];
-                    FillVideoContainerList(folders.folderPath, false);
+                    VideoContainer folder = _videoContainerList.videoContainerList[index];
+                    await FillVideoContainerList(folder.folderPath, false);
                 }
                 WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
             } else {
-                _videoContainerList = new VideoContainerList {
-                    videoContainerList = new List<VideoContainer>()
-                };
                 _isFirstTime = true;
                 addNewPanel.SetActive(true);
-                PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by click on 'Add New Folder' Button");
+                PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by clicking 'Add New Folder'");
             }
         }
 
-        private void OnEnable() {
-            addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
-        }
+        private async void OnAddNewButtonClickEvent() {
+            try {
+                string lastDir = PlayerPrefs.GetString("dir", Application.streamingAssetsPath);
+                string dir = FileExplorer.OpenFolder(lastDir);
+                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir)) {
+                    PlayerPrefs.SetString("dir", dir);
+                    await FillVideoContainerList(dir, true);
 
-        private void OnDisable() {
-            addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
-        }
-
-        private void OnAddNewButtonClickEvent() {
-            string dir = FileExplorer.OpenFolder(PlayerPrefs.GetString(nameof(dir), Application.streamingAssetsPath));
-            PlayerPrefs.SetString(nameof(dir), dir);
-            FillVideoContainerList(dir, true);
-            if (_isFirstTime) {
-                _isFirstTime = true;
-                if (FolderObjectList.Count > 0) {
-                    WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
+                    if (_isFirstTime && FolderObjectList.Count > 0) {
+                        WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
+                        _isFirstTime = false;
+                    }
+                } else {
+                    PopupManager.Instance.ShowToast("Selected folder does not exist or is invalid");
                 }
+            } catch (Exception ex) {
+                Debug.LogError($"Error adding new folder: {ex.Message}");
+                PopupManager.Instance.ShowToast("Failed to add new folder");
             }
         }
 
         private void StreamingAssetScan() {
             string path = Application.streamingAssetsPath;
             if (!Directory.Exists(path)) {
-                Debug.LogError("StreamingAssets path not found: " + path);
+                Debug.LogError($"StreamingAssets path not found: {path}");
                 return;
             }
-            string[] subFolders = Directory.GetDirectories(path);
-            foreach (string folder in subFolders) {
-                FillVideoContainerList(folder, true, true);
+
+            foreach (string folder in Directory.GetDirectories(path)) {
+                _ = FillVideoContainerList(folder, true, true); // Fire and forget
             }
         }
 
-        private async void FillVideoContainerList(string folderPath, bool addToTheList, bool streamingAsset = false) {
-            List<string> videos = new List<string>();
-            string audioPath = null;
-
-            string[] files = Directory.GetFiles(folderPath);
-            string[] sortedFiles = files.OrderBy(Path.GetFileName).ToArray();
-
-            foreach (string file in sortedFiles) {
-                string ext = Path.GetExtension(file).ToLower();
-                if (Array.Exists(WindowsPlayer.VideoExtensions, e => e == ext)) {
-                    videos.Add(file);
-                }
-                if (audioPath == null && Array.Exists(WindowsPlayer.AudioExtensions, e => e == ext) && File.Exists(file)) {
-                    audioPath = file;
-                } else {
-                    audioPath = string.Empty;
-                }
+        private async Task FillVideoContainerList(string folderPath, bool addToTheList, bool streamingAsset = false) {
+            if (!Directory.Exists(folderPath)) {
+                Debug.LogError($"Folder does not exist: {folderPath}");
+                return;
             }
-            VideoContainer videoContainer = new VideoContainer {
+
+            string[] files = Directory.GetFiles(folderPath)
+                .OrderBy(Path.GetFileName)
+                .ToArray();
+            string[] videos = files.Where(file => WindowsPlayer.VideoExtensions.Contains(Path.GetExtension(file)
+                .ToLower()))
+                .ToArray();
+
+            string audio = files.FirstOrDefault(file => WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(file)
+                .ToLower()));
+
+            VideoContainer videoContainer = new() {
                 folderPath = folderPath,
                 folderName = Path.GetFileName(folderPath),
-                videoPath = videos.ToArray(),
-                audioPath = audioPath
+                videoPath = videos,
+                audioPath = audio ?? string.Empty
             };
 
-            if (_videoContainerList.videoContainerList.Find(x => x.folderName == videoContainer.folderName) == null || (!addToTheList && !FolderObjectList.ContainsKey(videoContainer.folderName))) {
-                FolderObjectList.Add(videoContainer.folderName, Instantiate(folderObjectPrefab, folderParent).Init(videoContainer, this));
+            bool alreadyExists = _videoContainerList.videoContainerList.Any
+                (x => x.folderName == videoContainer.folderName)
+                                 || FolderObjectList.ContainsKey(videoContainer.folderName);
+
+            if (FolderObjectList.ContainsKey(videoContainer.folderName) == false) {
+                FolderObjects obj = Instantiate(folderObjectPrefab, folderParent)
+                    .Init(videoContainer, this);
+                FolderObjectList.Add(videoContainer.folderName, obj);
+            }
+
+
+            if (!alreadyExists) {
                 if (addToTheList) {
                     _videoContainerList.videoContainerList.Add(videoContainer);
-                    await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+                    if (!streamingAsset) {
+                        await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+                    }
                     PopupManager.Instance.ShowToast("Folder Added");
                 }
-            } else {
-                if (!streamingAsset) {
-                    Log($"Folder Already Added {videoContainer.folderName}");
-                    PopupManager.Instance.ShowPopup("Folder Already Added", MessageType.Error, PopupType.NoButton);
-                }
+            } else if (!streamingAsset && addToTheList) {
+                Debug.Log($"Folder Already Added: {videoContainer.folderName}");
+                PopupManager.Instance.ShowPopup("Folder Already Added", MessageType.Error, PopupType.NoButton);
             }
         }
-        public async void DeleteFolder(VideoContainer videoContainerFolderName) {
-            _videoContainerList.videoContainerList.Remove(videoContainerFolderName);
-            FolderObjectList.Remove(videoContainerFolderName.folderName);
+
+        public async void DeleteFolder(VideoContainer folder) {
+            _videoContainerList.videoContainerList.Remove(folder);
+            FolderObjectList.Remove(folder.folderName);
+
             await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+        }
+
+        private async Task LoadOrInitializeVideoList() {
+            if (File.Exists(_jsonPath)) {
+                string jsonContent = await File.ReadAllTextAsync(_jsonPath);
+                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent)
+                                      ?? new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+            } else {
+                _videoContainerList = new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+                await CreateFile(_jsonPath);
+            }
         }
     }
 }

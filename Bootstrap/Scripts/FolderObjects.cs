@@ -19,6 +19,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField] private Button playButton;
         [SerializeField] private Button deleteButton;
         [SerializeField] private UIEffect highlightObject;
+        [SerializeField] private Image myImage;
+        [SerializeField] private Sprite variation1;
+        [SerializeField] private Sprite variation2;
+        
 
         private WindowsUIController _windowsUIController;
         private string _hoverText = "";
@@ -55,15 +59,17 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void PlayVideoFromFolder() {
-            WindowsPlayer.Instance.PlayThisVideo(_videoContainer.folderName);
+            WindowsPlayer.Instance.PlayThisVideo(_videoContainer.folderName, true);
         }
 
         public void HighLightButton() {
-            highlightObject.enabled = true;
+            //highlightObject.enabled = true;
+            myImage.sprite = variation2;
             showPlayButton.gameObject.SetActive(false);
         }
         public void DeHighLightButton() {
-            highlightObject.enabled = false;
+            //highlightObject.enabled = false;
+            myImage.sprite = variation1;
             showPlayButton.gameObject.SetActive(true);
         }
 

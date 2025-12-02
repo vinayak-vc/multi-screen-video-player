@@ -2,6 +2,8 @@
 
 using Coffee.UIEffects;
 
+using DG.Tweening;
+
 using TMPro;
 
 using UnityEngine;
@@ -16,17 +18,19 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField] private Sprite variation2;
 
         [SerializeField] private UIEffect highlightObject;
+        
 
         private int _myIndex;
 
         public void Init(string folderName, int index) {
             buttonText.text = folderName;
             _myIndex = index;
+            name = folderName;
         }
 
         private void OnEnable() {
             button.onClick.AddListener(OnClick);
-            button.image.sprite = transform.GetSiblingIndex() % 2 == 0 ? variation1 : variation2;
+            //button.image.sprite = transform.GetSiblingIndex() % 2 == 0 ? variation1 : variation2;
         }
 
         private void OnDisable() {
@@ -36,10 +40,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             AndroidPlayer.Instance.uiController.PlayThisVideo(buttonText.text, _myIndex);
         }
         public void HighLightButton() {
-            highlightObject.enabled = true;
+            //highlightObject.enabled = true;
+            transform.SetAsLastSibling();
+            button.image.sprite = variation2;
+            transform.DOScale(Vector3.one * 1.5f, 0.2f).SetEase(Ease.OutBack);
         }
         public void DeHighLightButton() {
-            highlightObject.enabled = false;
+            //highlightObject.enabled = false;
+            button.image.sprite = variation1;
+            transform.DOScale(Vector3.one, 0.2f).SetEase(Ease.OutBack);
         }
     }
 }

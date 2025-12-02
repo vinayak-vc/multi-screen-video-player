@@ -67,7 +67,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -2019520512, guid: 40716edfcacc02a43b00635f48ecd12c, type: 3}
+  m_Sprite: {fileID: -584130760519740540, guid: 9a79cc27829f0a64cb22abc3f144eb6e, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -208,8 +208,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Name: '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 2ca2fbd6ff98b594dafd209f8fccf12e, type: 2}
+  m_sharedMaterial: {fileID: 2501925585500417822, guid: 2ca2fbd6ff98b594dafd209f8fccf12e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -345,7 +345,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a682b71b975e70e4c8ef4958c006df7a, type: 3}
+  m_Sprite: {fileID: 8256805040061543948, guid: e898b0b09f6bead44a0e07c159f37cbe, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -488,6 +488,9 @@ MonoBehaviour:
   playButton: {fileID: 6402730462443497151}
   deleteButton: {fileID: 4068126698502345961}
   highlightObject: {fileID: 7298672615718743440}
+  myImage: {fileID: 8734449384286190142}
+  variation1: {fileID: 21300000, guid: 921cb48efa1f1704da28ea5722268dd2, type: 3}
+  variation2: {fileID: 21300000, guid: eb132b8e882461948be88cd09f207bf3, type: 3}
 --- !u!114 &4101721132398112346
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,31 +1,22 @@
 fileFormatVersion: 2
-guid: 18cf5962009a3ee4595fd6a69313decd
+guid: 9a79cc27829f0a64cb22abc3f144eb6e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5279487021343816869
-    second: Seconadry Buttons_0
+      213: -6681427374162175729
+    second: Group 28_0
   - first:
-      213: -4247766652872738576
-    second: Seconadry Buttons_1
+      213: 4694973579854542225
+    second: Group 28_1
   - first:
-      213: 5594127392738648649
-    second: Seconadry Buttons_2
+      213: -584130760519740540
+    second: Group 28_2
   - first:
-      213: -5557050655901244140
-    second: Seconadry Buttons_3
+      213: 8275727448488976033
+    second: Group 28_3
   - first:
-      213: 3060841211371540545
-    second: Seconadry Buttons_4
-  - first:
-      213: 4537522838605492276
-    second: Seconadry Buttons_5
-  - first:
-      213: 5330234177827879571
-    second: Seconadry Buttons_6
-  - first:
-      213: -1337792305490434210
-    second: Seconadry Buttons_7
+      213: -1309814258297023113
+    second: Group 28_4
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -147,89 +138,111 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Seconadry Buttons_1
+      name: Group 28_0
       rect:
         serializedVersion: 2
-        x: 38
-        y: 544
-        width: 132
-        height: 130
+        x: 0
+        y: 62
+        width: 150
+        height: 151
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 4cfd16e726e5a0248bab85a4aa90e9c2
-      internalID: 1121622340
+      spriteID: f091e72f33dc643a0800000000000000
+      internalID: -6681427374162175729
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Seconadry Buttons_2
+      name: Group 28_1
       rect:
         serializedVersion: 2
-        x: 38
-        y: 376
-        width: 132
-        height: 130
+        x: 248
+        y: 43
+        width: 189
+        height: 189
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 6456f0ad7f045e742af35b4f27e7dd99
-      internalID: -1567058007
+      spriteID: 195f2198895e72140800000000000000
+      internalID: 4694973579854542225
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Seconadry Buttons_3
+      name: Group 28_2
       rect:
         serializedVersion: 2
-        x: 38
-        y: 208
-        width: 132
-        height: 130
+        x: 535
+        y: 0
+        width: 277
+        height: 275
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: fa38d171f245079419dfb3209ebfc42e
-      internalID: -136308096
+      spriteID: 48397dc0b20c4e7f0800000000000000
+      internalID: -584130760519740540
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Seconadry Buttons_4
+      name: Group 28_3
       rect:
         serializedVersion: 2
-        x: 38
-        y: 40
-        width: 132
-        height: 130
+        x: 910
+        y: 43
+        width: 189
+        height: 189
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 7262aa71376ece24fb8cd61c0339c0c2
-      internalID: 590478939
+      spriteID: 1ae9229844a49d270800000000000000
+      internalID: 8275727448488976033
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Group 28_4
+      rect:
+        serializedVersion: 2
+        x: 1197
+        y: 62
+        width: 150
+        height: 151
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 775d67c2fda92dde0800000000000000
+      internalID: -1309814258297023113
       vertices: []
       indices: 
       edges: []
@@ -238,7 +251,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: b613ae66967c8bc48ae7bbdc4ce9be27
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -248,14 +261,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Seconadry Buttons_0: -242809195
-      Seconadry Buttons_1: 1121622340
-      Seconadry Buttons_2: -1567058007
-      Seconadry Buttons_3: -136308096
-      Seconadry Buttons_4: 590478939
-      Seconadry Buttons_5: 498158727
-      Seconadry Buttons_6: 1938155140
-      Seconadry Buttons_7: -1553931112
+      Group 28_0: -6681427374162175729
+      Group 28_1: 4694973579854542225
+      Group 28_2: -584130760519740540
+      Group 28_3: 8275727448488976033
+      Group 28_4: -1309814258297023113
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

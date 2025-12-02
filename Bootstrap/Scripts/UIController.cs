@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 
+using DG.Tweening;
+
 using TMPro;
 
 using UnityEngine;
@@ -11,6 +13,7 @@ using UnityEngine.UI;
 using ViitorCloud.Utility.PopupManager;
 
 using static Modules.Utility.Utility;
+
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class UIController : MonoBehaviour {
@@ -41,19 +44,22 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         [SerializeField] private ButtonController buttonControllerPrefab;
         [SerializeField] private Transform buttonControllerTransform;
-        private List<ButtonController> _buttonControllerList = new List<ButtonController>();
+        [SerializeField] private GridLayoutGroup gridLayoutGroup;
+        [SerializeField] private TextMeshProUGUI currentPlayingVideoNameText;
+
+        private readonly List<ButtonController> _buttonControllerList = new();
 
         private readonly float[] _playbackSpeeds = {
             1f, 1.5f, 2f, 2.5f, 3f
         };
 
         private int _playbackSpeedIndex;
-        private bool _isDraggingSlider = false;
-
+        private bool _isDraggingSlider;
         private void OnEnable() {
             loopToggle.onValueChanged.AddListener(OnLoopToggleValueChanged);
             playButton.onClick.AddListener(OnPlayButtonClicked);
             pauseButton.onClick.AddListener(OnPauseButtonClicked);
+
             //stopButton.onClick.AddListener(OnStopButtonClicked);
             muteButton.onClick.AddListener(OnToggleMuteClicked);
             unmuteButton.onClick.AddListener(OnToggleMuteClicked);
@@ -66,9 +72,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             BootstrapManager.OnClientConnected += SuccessCallBack;
             BootstrapManager.OnClientDisconnected += OnClientDisconnected;
         }
+
         private void OnDisable() {
             playButton.onClick.RemoveListener(OnPlayButtonClicked);
             pauseButton.onClick.RemoveListener(OnPauseButtonClicked);
+
             //stopButton.onClick.RemoveListener(OnStopButtonClicked);
             muteButton.onClick.RemoveListener(OnToggleMuteClicked);
             unmuteButton.onClick.RemoveListener(OnToggleMuteClicked);
@@ -83,7 +91,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             loopToggle.onValueChanged.RemoveListener(OnLoopToggleValueChanged);
         }
 
-
         private void Start() {
             if (PlayerPrefs.HasKey("ip")) {
                 ipText.text = PlayerPrefs.GetString("ip", "");
@@ -92,37 +99,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 ipPanel.SetActive(true);
             }
         }
-        private void IpButtonClickEvent() {
-            if (!string.IsNullOrEmpty(ipText.text)) {
-                autoConnectText.text = "Connecting...";
-                autoConnectPanel.SetActive(true);
-                BootstrapManager.Instance.Connect(ipText.text);
-            } else {
-                ipErrorText.text = "IP text can not be empty";
-                autoConnectPanel.SetActive(false);
-            }
-        }
-        private void SuccessCallBack(bool connected) {
-            if (!connected) {
-                ipErrorText.text = "Cannot connect to the server. Enter correct IP address.";
-                autoConnectPanel.SetActive(false);
-            } else {
-                PlayerPrefs.SetString("ip", ipText.text);
-                StartCoroutine(ConnectionSuccessful());
-            }
-        }
-        private IEnumerator ConnectionSuccessful() {
-            yield return new WaitForSeconds(2f);
-            autoConnectText.text = "Connected";
-            yield return new WaitForSeconds(1f);
-            ipPanel.SetActive(false);
-            autoConnectPanel.SetActive(false);
-        }
-        private void OnClientDisconnected() {
-            ipPanel.SetActive(true);
-            autoConnectPanel.SetActive(false);
-            ipErrorText.text = "Disconnected";
-        }
+        
 #if UNITY_EDITOR || UNITY_STANDALONE
         public void Update() {
             if (Input.GetKeyDown(KeyCode.Space)) {
@@ -159,9 +136,43 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             if (Input.GetKeyDown(KeyCode.RightArrow)) {
                 Seek15SecNext();
             }
-
         }
 #endif
+        private void IpButtonClickEvent() {
+            if (!string.IsNullOrEmpty(ipText.text)) {
+                autoConnectText.text = "Connecting...";
+                autoConnectPanel.SetActive(true);
+                BootstrapManager.Instance.Connect(ipText.text);
+            } else {
+                ipErrorText.text = "IP text can not be empty";
+                autoConnectPanel.SetActive(false);
+            }
+        }
+
+        private void SuccessCallBack(bool connected) {
+            if (!connected) {
+                ipErrorText.text = "Cannot connect to the server. Enter correct IP address.";
+                autoConnectPanel.SetActive(false);
+            } else {
+                PlayerPrefs.SetString("ip", ipText.text);
+                StartCoroutine(ConnectionSuccessful());
+            }
+        }
+
+        private IEnumerator ConnectionSuccessful() {
+            yield return new WaitForSeconds(2f);
+            autoConnectText.text = "Connected";
+            yield return new WaitForSeconds(1f);
+            ipPanel.SetActive(false);
+            autoConnectPanel.SetActive(false);
+        }
+
+        private void OnClientDisconnected() {
+            ipPanel.SetActive(true);
+            autoConnectPanel.SetActive(false);
+            ipErrorText.text = "Disconnected";
+        }
+
         private void OnPlayButtonClicked() {
             pauseButton.gameObject.SetActive(true);
             playButton.gameObject.SetActive(false);
@@ -223,7 +234,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnSetPlaybackSpeedClicked() {
-
             if (_playbackSpeedIndex == _playbackSpeeds.Length) {
                 _playbackSpeedIndex = 0;
             } else {
@@ -231,15 +241,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
             setPlaybackSpeedButtonText.text = $"x{_playbackSpeeds[_playbackSpeedIndex]}";
 
-            BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackSpeeds[_playbackSpeedIndex]}");
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(
+                $"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackSpeeds[_playbackSpeedIndex]}");
         }
 
-        // Called from WindowsPlayer when UpdateProgressClientRpc runs on this client
         public void SetProgress(double currentTime, double length) {
             if (!_isDraggingSlider) {
                 progressSlider.maxValue = (float)length;
                 progressSlider.value = (float)currentTime;
-                sliderText.text = $"{ConvertSecondsToMinutes((int)progressSlider.value)} / {ConvertSecondsToMinutes((int)progressSlider.maxValue)}";
+                sliderText.text =
+                    $"{ConvertSecondsToMinutes((int)progressSlider.value)} / {ConvertSecondsToMinutes((int)progressSlider.maxValue)}";
             }
         }
 
@@ -257,47 +268,59 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public void SetVideoName(VideoContainerList vName, string ind) {
+            StartCoroutine(Enumerator());
+            return;
 
-            if (vName?.videoContainerList == null || vName.videoContainerList.Count == 0) {
-                PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder from the Computer and Restart Application.");
-                return;
-            }
-            
-            for (int i = 0; i < vName.videoContainerList.Count; i++) {
-                VideoContainer videoPlayerController = vName.videoContainerList[i];
-                ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                buttonController.Init(videoPlayerController.folderName, i);
-                _buttonControllerList.Add(buttonController);
-            }
-            try {
-                int index = int.Parse(ind);
-                if (index >= 0 && index < vName.videoContainerList.Count) {
-                    _buttonControllerList[index].HighLightButton();
+            IEnumerator Enumerator() {
+                if (vName?.videoContainerList == null || vName.videoContainerList.Count == 0) {
+                    PopupManager.Instance.ShowToast(
+                        "No Folders Found, Please Add New Folder from the Computer and Restart Application.");
+                    yield break;
                 }
-            } catch (Exception e) {
-                LogError(e);
+                gridLayoutGroup.enabled = true;
+                for (int i = 0; i < vName.videoContainerList.Count; i++) {
+                    VideoContainer videoPlayerController = vName.videoContainerList[i];
+                    ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
+                    buttonController.Init(videoPlayerController.folderName, i);
+                    _buttonControllerList.Add(buttonController);
+                }
+                yield return new WaitForEndOfFrame();
+                gridLayoutGroup.enabled = false;
+                try {
+                    int index = int.Parse(ind);
+                    if (index >= 0 && index < vName.videoContainerList.Count) {
+                        _buttonControllerList[index].HighLightButton();
+                    }
+                } catch (Exception e) {
+                    LogError(e);
+                }
             }
         }
 
         public void PlayThisVideo(string folderName, int index) {
-            BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.PlayThisVideo}{Commands.Separator}{folderName}");
+            BootstrapManager.Instance.networkObject?.SendCommandToServer(
+                $"{Commands.PlayThisVideo}{Commands.Separator}{folderName}");
             OnRestartButtonClicked();
             HighLightThisButton(index.ToString());
         }
 
         private void RefreshButtonClickEvent() {
             BootstrapManager.Instance.DisconnectClient();
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            SceneManager.LoadScene(SceneManager.GetActiveScene()
+                .name);
         }
 
         private void OnLoopToggleValueChanged(bool arg0) {
             BootstrapManager.Instance.networkObject?.SendCommandToServer($"{Commands.Loop}{Commands.Separator}{arg0}");
         }
+
         public void HighLightThisButton(string s) {
             int index = int.Parse(s);
             for (int i = 0; i < _buttonControllerList.Count; i++) {
                 if (index == i) {
                     _buttonControllerList[i].HighLightButton();
+                    currentPlayingVideoNameText.text = _buttonControllerList[i].name;
+                    currentPlayingVideoNameText.transform.DOPunchScale(Vector3.one * 1.2f, 0.5f, 10, 0.2f);
                 } else {
                     _buttonControllerList[i].DeHighLightButton();
                 }

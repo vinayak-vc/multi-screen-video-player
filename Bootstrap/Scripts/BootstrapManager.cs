@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 using JetBrains.Annotations;
 
@@ -26,7 +27,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private UnityTransport _transport;
         private NetworkManager _networkManager;
-        [HideInInspector][CanBeNull] public NetworkMediator networkObject;
+        public NetworkMediator networkObject;
+        public List<NetworkMediator> networkObjects;
         private void Awake() {
             if (Instance == null) {
                 Instance = this;
