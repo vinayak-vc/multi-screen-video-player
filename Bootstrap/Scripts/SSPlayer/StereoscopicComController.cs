@@ -28,7 +28,7 @@ namespace StereoscopicComControl {
             _ = Task.Run(async () => {
                 try {
                     Log("Waiting for client...");
-                    await server.WaitForConnectionAsync();
+                    await server.WaitForConnectionAsync().ConfigureAwait(false);
 
                     reader = new StreamReader(server, Encoding.UTF8, false, 1024, leaveOpen: true);
                     writer = new StreamWriter(server, Encoding.UTF8, 1024, leaveOpen: true) { AutoFlush = true };
