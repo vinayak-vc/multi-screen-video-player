@@ -389,12 +389,20 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public void NewVideoAdded(string s) {
-            gridLayoutGroup.enabled = true;
-            VideoContainer videoPlayerController = JsonUtility.FromJson<VideoContainer>(s);;
-            ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-            buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count);
-            _buttonControllerList.Add(buttonController);
-            gridLayoutGroup.enabled = false;
+            StartCoroutine(Enumerator());
+            return;
+
+            IEnumerator Enumerator() {
+                gridLayoutGroup.enabled = true;
+                yield return new WaitForEndOfFrame();
+                VideoContainer videoPlayerController = JsonUtility.FromJson<VideoContainer>(s);
+                ;
+                ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
+                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count);
+                _buttonControllerList.Add(buttonController);
+                yield return new WaitForEndOfFrame();
+                gridLayoutGroup.enabled = false;
+            }
         }
     }
 }

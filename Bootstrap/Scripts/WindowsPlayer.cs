@@ -114,6 +114,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
 
             _index = -1;
+            
             PlayNextVideo();
             StartCoroutine(StartContinuouslyUpdateProgress());
         }

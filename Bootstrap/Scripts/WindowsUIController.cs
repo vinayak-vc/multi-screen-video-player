@@ -77,8 +77,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                         WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
                         _isFirstTime = false;
                     } else {
-                        WindowsPlayer.Instance.NewFolderAdded(_videoContainerList);
                     }
+                    WindowsPlayer.Instance.NewFolderAdded(_videoContainerList);
                 } else {
                     PopupManager.Instance.ShowToast("Selected folder does not exist or is invalid");
                 }
