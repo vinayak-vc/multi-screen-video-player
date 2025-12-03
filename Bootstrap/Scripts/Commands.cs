@@ -19,11 +19,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string PlayThisVideo = "PlayThisVideo";
         public const string Loop = "Loop";
         public const string NewVideo = "NewVideo";
+        public const string OpenFile = "OpenFile";
     }
 
     [Serializable]
     public class VideoContainerList {
-        public List<VideoContainer> videoContainerList = new List<VideoContainer>();
+        public List<VideoContainer> videoContainerList = new();
     }
 
     [Serializable]

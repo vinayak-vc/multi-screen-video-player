@@ -64,7 +64,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 BootstrapManager.OnClientConnected.Invoke(true);
             }
         }
-
         private async void OnAddNewButtonClickEvent() {
             try {
                 string lastDir = PlayerPrefs.GetString("dir", Application.streamingAssetsPath);

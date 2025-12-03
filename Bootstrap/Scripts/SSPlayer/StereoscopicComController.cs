@@ -1,121 +1,59 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 using UnityEngine;
 
-using StereoPlayer;
+using static Modules.Utility.Utility;
 
 
 namespace StereoscopicComControl {
-    
-    [Guid("73B28B6E-D306-4589-B032-9ED17AA4D182")] 
-    [ClassInterface(ClassInterfaceType.None)]
-    [ComVisible(true)] // This attribute makes the class COM-visible
-    [ProgId("UnityComBridge.StereoPlayerBridge")]
-    public class StereoscopicComController : IDisposable {
-        private IAutomation _player;
-        private Thread _staThread;
-        private readonly BlockingCollection<Action> _queue = new();
-        private volatile bool _running;
-        private volatile bool _isReady;
+    public class StereoscopicComController {
+        private NamedPipeServerStream server;
+        private StreamReader reader;
+        private StreamWriter writer;
+        private bool isConnected = false;
 
-        public bool IsReady => _isReady;
+        public async Task StartServerAsync() {
+            Log("Server starting...");
+            server = new NamedPipeServerStream("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
 
-        // ---------------- START ----------------
+            Log("Waiting for client...");
+            await server.WaitForConnectionAsync();
+            Log("Client connected.");
 
-        public void Connect() {
-            if (_running)
+            reader = new StreamReader(server, Encoding.UTF8, false, 1024, leaveOpen: true);
+            writer = new StreamWriter(server, Encoding.UTF8, 1024, leaveOpen: true) { AutoFlush = true };
+
+            isConnected = true;
+        }
+
+        public async Task SendMessage(string message) // Task, not void
+        {
+            if (!isConnected || writer == null) {
+                LogError("Not connected");
                 return;
+            }
 
-            _running = true;
-
-            _staThread = new Thread(StaThread);
-            _staThread.SetApartmentState(ApartmentState.STA);
-            _staThread.IsBackground = true;
-            _staThread.Start();
-        }
-
-        private void StaThread() {
             try {
-                //Type comType = Type.GetTypeFromProgID("StereoPlayer.Automation");
-                Type comType = Type.GetTypeFromCLSID(new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182"));
-                _player = (IAutomation)Activator.CreateInstance(comType);
-
-                _isReady = true;
-
-                while (_running) {
-                    if (!_queue.TryTake(out var action, 50))
-                        continue;
-
-                    action?.Invoke();
-                }
-            } catch (Exception e) {
-                Debug.LogError("STA COM thread crashed: " + e);
+                await writer.WriteLineAsync(message);
+                Log($"Sent: {message}");
+            } catch (Exception ex) {
+                LogError($"Send failed: {ex.Message}");
+                isConnected = false;
             }
         }
 
-        private bool TryEnqueue(Action action) {
-            if (!_isReady || _player == null)
-                return false;
-
-            _queue.Add(action);
-            return true;
-        }
-
-        // ---------------- PUBLIC API ----------------
-
-        public void OpenLeftRightFiles(string left, string right, string audio = "") {
-            TryEnqueue(() => {
-                _player.OpenLeftRightFiles(left, right, audio, AudioMode.SeparateFile);
-                _player.SetPlaybackState(PlaybackState.Play);
-            });
-        }
-
-        public void Play() {
-            TryEnqueue(() => _player.SetPlaybackState(PlaybackState.Play));
-        }
-
-        public void Pause() {
-            TryEnqueue(() => _player.SetPlaybackState(PlaybackState.Pause));
-        }
-
-        public void Stop() {
-            TryEnqueue(() => _player.SetPlaybackState(PlaybackState.Stop));
-        }
-
-        public void Seek(double seconds) {
-            TryEnqueue(() => _player.SetPosition(seconds));
-        }
-
-        public void SetVolume(float volume01) {
-            TryEnqueue(() => _player.SetVolume(Math.Clamp(volume01, 0f, 1f) * 100.0));
-        }
-
-        // ---------------- CLEANUP ----------------
-
-        public void Dispose() {
-            _running = false;
-
-            if (_player != null) {
-                try {
-                    _player.ClosePlayer();
-                    Marshal.ReleaseComObject(_player);
-                } catch {
-                }
-
-                _player = null;
-            }
-        }
-
-        public void ToggleMute() {
-        }
-
-        public void Restart() {
-        }
-
-        public void SetPlaybackSpeed(float result) {
+        public async Task StopServerAsync() {
+            isConnected = false;
+            reader?.Dispose();
+            writer?.Dispose();
+            server?.Dispose();
         }
     }
 }
