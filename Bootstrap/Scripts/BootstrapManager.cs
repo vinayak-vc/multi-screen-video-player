@@ -96,5 +96,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 OnClientConnected?.Invoke(false);
             }
         }
+
+        public void DisconnectServer() {
+            if (_networkManager.IsHost) {
+                _networkManager.Shutdown();
+            }
+        }
     }
 }

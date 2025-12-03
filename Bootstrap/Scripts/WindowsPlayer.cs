@@ -366,6 +366,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             } catch (Exception e) {
                 // ignored
             }
+            if (BootstrapManager.Instance) {
+                BootstrapManager.Instance.DisconnectServer();
+            }
         }
     }
 }
