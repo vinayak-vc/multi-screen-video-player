@@ -359,5 +359,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
             return audioClip;
         }
+
+        private async void OnDisable() {
+            try {
+                await stereoComController.StopServerAsync();
+            } catch (Exception e) {
+                // ignored
+            }
+        }
     }
 }
