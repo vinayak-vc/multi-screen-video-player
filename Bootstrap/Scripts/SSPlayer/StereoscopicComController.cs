@@ -34,7 +34,8 @@ namespace StereoscopicComControl {
 
         private void StaThread() {
             try {
-                Type comType = Type.GetTypeFromProgID("StereoPlayer.Automation");
+                //Type comType = Type.GetTypeFromProgID("StereoPlayer.Automation");
+                Type comType = Type.GetTypeFromCLSID(new Guid("73B28B6E-D306-4589-B032-9ED17AA4D182"));
                 _player = (IAutomation)Activator.CreateInstance(comType);
 
                 _isReady = true;
@@ -104,15 +105,12 @@ namespace StereoscopicComControl {
         }
 
         public void ToggleMute() {
-            throw new NotImplementedException();
         }
 
         public void Restart() {
-            throw new NotImplementedException();
         }
 
         public void SetPlaybackSpeed(float result) {
-            throw new NotImplementedException();
         }
     }
 }
