@@ -37,7 +37,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             button.onClick.RemoveListener(OnClick);
         }
         public void OnClick() {
-            AndroidPlayer.Instance.uiController.PlayThisVideo(buttonText.text, _myIndex);
+            AndroidPlayer.Instance.mobileUIController.PlayThisVideo(buttonText.text, _myIndex);
         }
         public void HighLightButton() {
             //highlightObject.enabled = true;

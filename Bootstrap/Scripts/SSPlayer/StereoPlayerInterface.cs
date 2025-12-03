@@ -14,8 +14,8 @@ using System.Runtime.InteropServices;
 
 namespace StereoPlayer {
     [ComVisible(true)]
-    [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
-    [Guid("73B28B6E-D306-4589-B032-9ED17AA4D182")]
+    [InterfaceType(ComInterfaceType.InterfaceIsDual)]
+    [Guid("54150FC5-F6D5-419A-BC0D-E2BE08558934")]
     [TypeLibType(TypeLibTypeFlags.FDispatchable | TypeLibTypeFlags.FDual | TypeLibTypeFlags.FOleAutomation)]
     public interface IAutomation {
         /// <summary>

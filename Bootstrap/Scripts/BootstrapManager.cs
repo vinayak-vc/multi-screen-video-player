@@ -70,7 +70,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _isConnected = true;
                 StopCoroutine(CheckForConnection());
                 OnClientConnected?.Invoke(true);
-                AndroidPlayer.Instance.GetVideoName();
             }
         }
 

@@ -9,6 +9,11 @@ using StereoPlayer;
 
 
 namespace StereoscopicComControl {
+    
+    [Guid("73B28B6E-D306-4589-B032-9ED17AA4D182")] 
+    [ClassInterface(ClassInterfaceType.None)]
+    [ComVisible(true)] // This attribute makes the class COM-visible
+    [ProgId("UnityComBridge.StereoPlayerBridge")]
     public class StereoscopicComController : IDisposable {
         private IAutomation _player;
         private Thread _staThread;

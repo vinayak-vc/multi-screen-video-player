@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public static class Commands {
         public const char Separator = '~';
@@ -16,6 +18,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string NameVideo = "NameVideo";
         public const string PlayThisVideo = "PlayThisVideo";
         public const string Loop = "Loop";
+        public const string NewVideo = "NewVideo";
     }
 
     [Serializable]

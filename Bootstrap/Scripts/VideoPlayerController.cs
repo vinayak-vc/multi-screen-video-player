@@ -155,6 +155,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                         if (!videoPlayer.isPlaying && videoPlayer.isPrepared) {
                             videoPlayer.Play();
                         }
+                    } else {
+                        LogError("Cannot seek video player", gameObject);
                     }
                 }
             } else {

@@ -15,9 +15,15 @@ using static Modules.Utility.Utility;
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class WindowsUIController : MonoBehaviour {
         public GameObject addNewPanel;
-        [SerializeField] private Button addNewButton;
-        [SerializeField] private Transform folderParent;
-        [SerializeField] private FolderObjects folderObjectPrefab;
+
+        [SerializeField]
+        private Button addNewButton;
+
+        [SerializeField]
+        private Transform folderParent;
+
+        [SerializeField]
+        private FolderObjects folderObjectPrefab;
 
         public Dictionary<string, FolderObjects> FolderObjectList {
             get;
@@ -53,6 +59,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 addNewPanel.SetActive(true);
                 PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by clicking 'Add New Folder'");
             }
+
+            if (WindowsPlayer.Instance.isBothInSameScene) {
+                BootstrapManager.OnClientConnected.Invoke(true);
+            }
         }
 
         private async void OnAddNewButtonClickEvent() {
@@ -66,12 +76,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     if (_isFirstTime && FolderObjectList.Count > 0) {
                         WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
                         _isFirstTime = false;
+                    } else {
+                        WindowsPlayer.Instance.NewFolderAdded(_videoContainerList);
                     }
                 } else {
                     PopupManager.Instance.ShowToast("Selected folder does not exist or is invalid");
                 }
             } catch (Exception ex) {
-                Debug.LogError($"Error adding new folder: {ex.Message}");
+                LogError($"Error adding new folder: {ex.Message}");
                 PopupManager.Instance.ShowToast("Failed to add new folder");
             }
         }
@@ -79,7 +91,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void StreamingAssetScan() {
             string path = Application.streamingAssetsPath;
             if (!Directory.Exists(path)) {
-                Debug.LogError($"StreamingAssets path not found: {path}");
                 return;
             }
 
@@ -90,7 +101,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private async Task FillVideoContainerList(string folderPath, bool addToTheList, bool streamingAsset = false) {
             if (!Directory.Exists(folderPath)) {
-                Debug.LogError($"Folder does not exist: {folderPath}");
+                LogError($"Folder does not exist: {folderPath}");
                 return;
             }
 
@@ -104,16 +115,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             string audio = files.FirstOrDefault(file => WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(file)
                 .ToLower()));
 
-            VideoContainer videoContainer = new() {
-                folderPath = folderPath,
-                folderName = Path.GetFileName(folderPath),
-                videoPath = videos,
-                audioPath = audio ?? string.Empty
-            };
+            VideoContainer videoContainer = new() { folderPath = folderPath, folderName = Path.GetFileName(folderPath), videoPath = videos, audioPath = audio ?? string.Empty };
 
-            bool alreadyExists = _videoContainerList.videoContainerList.Any
-                (x => x.folderName == videoContainer.folderName)
-                                 || FolderObjectList.ContainsKey(videoContainer.folderName);
+            bool alreadyExists = _videoContainerList.videoContainerList.Any(x => x.folderName == videoContainer.folderName) || FolderObjectList.ContainsKey(videoContainer.folderName);
 
             if (FolderObjectList.ContainsKey(videoContainer.folderName) == false) {
                 FolderObjects obj = Instantiate(folderObjectPrefab, folderParent)
@@ -131,7 +135,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     PopupManager.Instance.ShowToast("Folder Added");
                 }
             } else if (!streamingAsset && addToTheList) {
-                Debug.Log($"Folder Already Added: {videoContainer.folderName}");
+                Log($"Folder Already Added: {videoContainer.folderName}");
                 PopupManager.Instance.ShowPopup("Folder Already Added", MessageType.Error, PopupType.NoButton);
             }
         }
@@ -146,8 +150,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private async Task LoadOrInitializeVideoList() {
             if (File.Exists(_jsonPath)) {
                 string jsonContent = await File.ReadAllTextAsync(_jsonPath);
-                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent)
-                                      ?? new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent) ?? new VideoContainerList { videoContainerList = new List<VideoContainer>() };
             } else {
                 _videoContainerList = new VideoContainerList { videoContainerList = new List<VideoContainer>() };
                 await CreateFile(_jsonPath);

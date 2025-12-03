@@ -43,6 +43,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private bool ssPlayer;
 
+        public bool isBothInSameScene;
+
         private bool _loop = true;
         private VideoPlayerController _currentVideoPlayerController;
         private string _videoPathJsonString;
@@ -243,7 +245,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
                     Log("Playing video: " + folderName, videoPlayerController);
                     if (sendDataToAndroid) {
-                        BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+                        SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
                     }
                 } else {
                     videoPlayerController.Stop();
@@ -262,9 +264,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
                     Log("Playing video: " + folderName, videoPlayerController);
                     if (sendDataToAndroid) {
-                        if (false) {
-                        }
-                        BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+                        SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
                     }
                 } else {
                     videoPlayerController.Stop();
@@ -277,21 +277,41 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             _index = (_index + 1) % _videoContainerList.Count;
             Log(_index + "");
             PlayThisVideo(_videoContainerList[_index].GetFolderName());
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+            SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
         }
 
         private void NameVideo() {
-            UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+            if (_videoContainerList.Count > 0) {
+                UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
+                SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+            }
         }
 
         private void NameVideoSS() {
             UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+            SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
         }
 
         private void UpdateProgress(double currentTime, double length) {
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
+            SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
+        }
+
+        internal void NewFolderAdded(VideoContainerList containerList) {
+            VideoPlayerController videoPlayerController = Instantiate(videoContainerPrefab, transform);
+            videoPlayerController.Init(containerList.videoContainerList[^1]);
+            _videoContainerList.Add(videoPlayerController);
+
+            _videoPathJsonString = JsonUtility.ToJson(containerList);
+            string newFodlerjson = JsonUtility.ToJson(containerList.videoContainerList[^1]);
+            SendCommandToClient($"{Commands.NewVideo}{Commands.Separator}{newFodlerjson}");
+        }
+
+        private void SendCommandToClient(string command) {
+            if (!isBothInSameScene) {
+                BootstrapManager.Instance.networkObject?.SendCommandToClient(command);
+            } else {
+                AndroidPlayer.Instance.ExecuteCommand(command);
+            }
         }
 
         public IEnumerator PlayAudioFromFile(string filePath, Action<AudioClip> onAudioClipLoaded) {
@@ -340,9 +360,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
             return audioClip;
         }
-        
+
         void OnDestroy() {
-            stereoComController.Dispose();
+            stereoComController?.Dispose();
         }
     }
 }

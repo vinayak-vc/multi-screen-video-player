@@ -1,10 +1,14 @@
 ﻿using static Modules.Utility.Utility;
 
 using UnityEngine;
+using UnityEngine.Serialization;
+
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class AndroidPlayer : MonoBehaviour {
         public static AndroidPlayer Instance;
-        public UIController uiController;
+        public MobileUIController mobileUIController;
+
         private void Awake() {
             Instance = this;
         }
@@ -13,20 +17,29 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             string[] commandData = command.Split(Commands.Separator);
             switch (commandData[0]) {
                 case Commands.SliderData:
-                    uiController.SetProgress(double.Parse(commandData[1]), double.Parse(commandData[2]));
+                    mobileUIController.SetProgress(double.Parse(commandData[1]), double.Parse(commandData[2]));
                     break;
                 case Commands.NameVideo:
                     Log($"Executing Command : {command}");
-                    uiController.SetVideoName(JsonUtility.FromJson<VideoContainerList>(commandData[1]), commandData[2]);
+                    mobileUIController.SetVideoName(JsonUtility.FromJson<VideoContainerList>(commandData[1]), commandData[2]);
                     break;
                 case Commands.PlayThisVideo:
                     Log($"Executing Command : {command}");
-                    uiController.HighLightThisButton(commandData[1]);
+                    mobileUIController.HighLightThisButton(commandData[1]);
+                    break;
+                case Commands.NewVideo:
+                    Log($"Executing Command : {command}");
+                    mobileUIController.NewVideoAdded(commandData[1]);
                     break;
             }
         }
+
         public void GetVideoName() {
-            BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.NameVideo);
+            if (mobileUIController.isTheSameScene) {
+                mobileUIController.SendCommandToServer(Commands.NameVideo);
+            } else {
+                BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.NameVideo);
+            }
         }
     }
 }

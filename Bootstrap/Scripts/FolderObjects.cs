@@ -13,7 +13,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
     public class FolderObjects : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerMoveHandler {
         public VideoContainer _videoContainer;
         [SerializeField] private TextMeshProUGUI folderNameText;
-        [SerializeField] private List<PathInfoObject> pathInfos = new List<PathInfoObject>();
+        [SerializeField] private List<PathInfoObject> pathInfos = new();
         [SerializeField] private PathInfoObject pathInfoPrefab;
         [SerializeField] private GameObject showPlayButton;
         [SerializeField] private Button playButton;
