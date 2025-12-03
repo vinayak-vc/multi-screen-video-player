@@ -2272,8 +2272,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5fed568ebf6c14b11928f16219b5675b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  port: 7777
   isThisWindows: 1
   networkObject: {fileID: 0}
+  networkObjects: []
 --- !u!4 &1114774669
 Transform:
   m_ObjectHideFlags: 0
@@ -2330,6 +2332,8 @@ MonoBehaviour:
   videoContainerPrefab: {fileID: 7685516081894690662, guid: 19b45d5d720caf74aa1c580d0c6e0d00, type: 3}
   ipAddress: {fileID: 8404325710671456900}
   cameraPrefab: {fileID: 3094511622945307417, guid: 7066dbe330f2b7848bc8bc5e07e0a8c0, type: 3}
+  ssPlayer: 1
+  isBothInSameScene: 0
 --- !u!4 &1132396233
 Transform:
   m_ObjectHideFlags: 0
