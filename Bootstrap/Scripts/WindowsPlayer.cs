@@ -340,5 +340,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
             return audioClip;
         }
+        
+        void OnDestroy() {
+            stereoComController.Dispose();
+        }
     }
 }

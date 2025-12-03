@@ -8,7 +8,7 @@
 //
 // VBScript examples are available on the 3dtv.at website for download.
 
-using System;   
+using System;
 using System.Runtime.InteropServices;
 
 
