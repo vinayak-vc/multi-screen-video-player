@@ -1,10 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Pipes;
 using System.Text;
-using System.Threading.Tasks;
-
-using UnityEngine;
+using System.Threading;
 
 using static Modules.Utility.Utility;
 
@@ -12,80 +11,59 @@ using static Modules.Utility.Utility;
 namespace StereoscopicComControl {
     public class StereoscopicComController {
         private NamedPipeServerStream server;
-        private StreamReader reader;
-        private StreamWriter writer;
-        private bool isConnected = false;
+        private bool running = true;
+        private BinaryWriter bw;
+        private ConcurrentQueue<string> outgoing = new();
 
-        private TaskCompletionSource<bool> _connectedTcs;
+        public void Run() {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
-        public async Task StartServerAsync() {
-            Log("Server starting...");
+            server = new NamedPipeServerStream("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
 
-            _connectedTcs = new TaskCompletionSource<bool>();
+            Log("Waiting for connection...");
+            server.WaitForConnection();
+            Log("Client connected");
 
-            server = new NamedPipeServerStream("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
-
-            _ = Task.Run(async () => {
-                try {
-                    Log("Waiting for client...");
-                    await server.WaitForConnectionAsync().ConfigureAwait(false);
-
-                    reader = new StreamReader(server, Encoding.UTF8, false, 1024, leaveOpen: true);
-                    writer = new StreamWriter(server, Encoding.UTF8, 1024, leaveOpen: true) { AutoFlush = true };
-
-                    isConnected = true;
-                    _connectedTcs.TrySetResult(true); // 🔑 SIGNAL READY
-
-                    Log("Client connected.");
-                } catch (Exception ex) {
-                    _connectedTcs.TrySetException(ex);
-                    Log($"Server error: {ex.Message}");
-                }
-            });
-        }
-
-        public async Task SendMessage(string message) {
-            // ✅ Wait until pipe is ACTUALLY ready
-            if (_connectedTcs != null)
-                await _connectedTcs.Task;
-
-            if (!isConnected || writer == null) {
-                LogError("Not connected");
-                return;
-            }
+            BinaryReader br = new(server, Encoding.UTF8);
+            bw = new BinaryWriter(server, Encoding.UTF8);
 
             try {
-                await writer.WriteLineAsync(message);
-                Log($"Sent: {message}");
-            } catch (Exception ex) {
-                LogError($"Send failed: {ex.Message}");
-                isConnected = false;
+                while (running) {
+                    // ---- READ ----
+                    if (server.IsConnected && server.CanRead && server.InBufferSize > 0) {
+                        uint len = br.ReadUInt32();
+                        if (len is 0 or > 1024 * 1024)
+                            break;
+
+                        byte[] data = br.ReadBytes((int)len);
+                        string msg = Encoding.UTF8.GetString(data);
+
+                        Log("Client →\n" + msg);
+                    }
+
+                    // ---- WRITE ----
+                    while (outgoing.TryDequeue(out var msg)) {
+                        byte[] data = Encoding.UTF8.GetBytes(msg);
+                        bw.Write((uint)data.Length);
+                        bw.Write(data);
+                        bw.Flush();
+                    }
+
+                    Thread.Sleep(1); // prevent CPU spin
+                }
+            } catch (EndOfStreamException) {
+                Log("Client disconnected");
+            } finally {
+                server.Dispose();
             }
         }
 
-        // private async Task ReadLoopAsync() {
-        //     while (isConnected) {
-        //         try {
-        //             string? message = await reader.ReadLineAsync();
-        //             if (message != null) {
-        //                 Log($"Received: {message}");
-        //                 OnMessageReceived?.Invoke(message); // Unity-safe event
-        //             }
-        //         } catch (Exception ex) {
-        //             Log($"Read error: {ex.Message}");
-        //             break;
-        //         }
-        //     }
-        //
-        //     isConnected = false;
-        //     OnDisconnected?.Invoke();
-        // }
+        public void SendMessage(string msg) {
+            outgoing.Enqueue(msg);
+        }
 
-        public async Task StopServerAsync() {
-            isConnected = false;
-            reader?.Dispose();
-            writer?.Dispose();
-            server?.Dispose();
+        public void Dispose() {
+            server.Dispose();
         }
     }
 }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.AccessControl;
+using System.Threading;
 
 using StereoscopicComControl;
 
@@ -60,11 +61,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             ipAddress.text = IPManager.GetIP(ADDRESSFAM.IPv4);
         }
 
-        private async void Start() {
+        private void Start() {
             try {
                 if (ssPlayer) {
                     stereoComController = new StereoscopicComController();
-                    await stereoComController.StartServerAsync();
+                    new Thread(stereoComController.Run) { IsBackground = true }.Start();
                 }
             } catch (Exception e) {
                 throw; // TODO handle exception
@@ -188,13 +189,18 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        public async void ExecuteCommandSSVideoPlayer(string command, params string[] args) {
+        [ContextMenu("PlayThisVideoSSPlayer")]
+        private void PlayThisVideoSSPlayer() {
+            ExecuteCommandSSVideoPlayer("Play");
+        }
+
+        public void ExecuteCommandSSVideoPlayer(string command, params string[] args) {
             try {
                 switch (command) {
                     case Commands.Play:
                     case Commands.Pause:
                     case Commands.Stop:
-                        await stereoComController.SendMessage(command);
+                        stereoComController.SendMessage(command);
                         break;
                     case Commands.Seek: {
                         if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
@@ -362,7 +368,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private async void OnDisable() {
             try {
-                await stereoComController.StopServerAsync();
+                stereoComController.Dispose();
             } catch (Exception e) {
                 // ignored
             }
