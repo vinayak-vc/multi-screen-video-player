@@ -22,7 +22,7 @@ namespace StereoscopicComControl {
         private void LaunchComClient() {
             string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
 
-            if (!IsProcessRunning("COMBridgeAppV1")) {
+            if (!IsProcessRunning("COMBridgeAppV1.exe")) {
                 if (File.Exists(clientAppPath)) {
                     clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
                     clientProcess = Process.GetProcessById(clientProcessId);
@@ -35,7 +35,7 @@ namespace StereoscopicComControl {
             System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             while (running) {
-                NamedPipeServerStream server = new("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
+                using NamedPipeServerStream server = new("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
 
                 Log("Waiting for client...");
                 server.WaitForConnection();
@@ -69,11 +69,11 @@ namespace StereoscopicComControl {
                     Log("Client stream ended");
                 } catch (IOException) {
                     Log("Client disconnected");
-                }
 
-                // ✅ loop repeats → pipe recreated → waits again
-                Log("Resetting pipe...");
-                LaunchComClient();
+                    // ✅ loop repeats → pipe recreated → waits again
+                    Log("Resetting pipe...");
+                    LaunchComClient();
+                }
             }
         }
 
@@ -82,6 +82,7 @@ namespace StereoscopicComControl {
         }
 
         public void Dispose() {
+            running = false;
         }
     }
 }
