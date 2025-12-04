@@ -1,60 +1,79 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Text;
-using System.Threading;
+
+using UnityEngine;
 
 using static Modules.Utility.Utility;
+
+using Modules.Utility;
 
 
 namespace StereoscopicComControl {
     public class StereoscopicComController {
-        private NamedPipeServerStream server;
         private bool running = true;
-        private BinaryWriter bw;
         private ConcurrentQueue<string> outgoing = new();
+        private int clientProcessId = -1;
+        private Process clientProcess;
+
+        private void LaunchComClient() {
+            string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
+
+            if (!IsProcessRunning("COMBridgeAppV1")) {
+                if (File.Exists(clientAppPath)) {
+                    clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
+                    clientProcess = Process.GetProcessById(clientProcessId);
+                }
+            }
+        }
 
         public void Run() {
+            LaunchComClient();
             System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
-            server = new NamedPipeServerStream("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
+            while (running) {
+                NamedPipeServerStream server = new("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
 
-            Log("Waiting for connection...");
-            server.WaitForConnection();
-            Log("Client connected");
+                Log("Waiting for client...");
+                server.WaitForConnection();
+                Log("Client connected");
 
-            BinaryReader br = new(server, Encoding.UTF8);
-            bw = new BinaryWriter(server, Encoding.UTF8);
+                using BinaryReader br = new(server, Encoding.UTF8);
+                using BinaryWriter bw = new(server, Encoding.UTF8);
 
-            try {
-                while (running) {
-                    // ---- READ ----
-                    if (server.IsConnected && server.CanRead && server.InBufferSize > 0) {
+                try {
+                    while (running && server.IsConnected) {
+                        // ✅ blocking read – exits on disconnect
                         uint len = br.ReadUInt32();
-                        if (len is 0 or > 1024 * 1024)
+                        if (len is 0 or > 1024 * 1024) {
                             break;
+                        }
 
                         byte[] data = br.ReadBytes((int)len);
                         string msg = Encoding.UTF8.GetString(data);
 
-                        Log("Client →\n" + msg);
-                    }
+                        Log("Client → " + msg);
 
-                    // ---- WRITE ----
-                    while (outgoing.TryDequeue(out var msg)) {
-                        byte[] data = Encoding.UTF8.GetBytes(msg);
-                        bw.Write((uint)data.Length);
-                        bw.Write(data);
-                        bw.Flush();
+                        // write outgoing
+                        while (outgoing.TryDequeue(out string outMsg)) {
+                            byte[] outData = Encoding.UTF8.GetBytes(outMsg);
+                            bw.Write((uint)outData.Length);
+                            bw.Write(outData);
+                            bw.Flush();
+                        }
                     }
-
-                    Thread.Sleep(1); // prevent CPU spin
+                } catch (EndOfStreamException) {
+                    Log("Client stream ended");
+                } catch (IOException) {
+                    Log("Client disconnected");
                 }
-            } catch (EndOfStreamException) {
-                Log("Client disconnected");
-            } finally {
-                server.Dispose();
+
+                // ✅ loop repeats → pipe recreated → waits again
+                Log("Resetting pipe...");
+                LaunchComClient();
             }
         }
 
@@ -63,7 +82,6 @@ namespace StereoscopicComControl {
         }
 
         public void Dispose() {
-            server.Dispose();
         }
     }
 }
