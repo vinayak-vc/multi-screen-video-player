@@ -114,8 +114,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             _videoPathJsonString = JsonUtility.ToJson(containerList);
-            Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
-
             _index = -1;
 
             PlayNextVideo();
@@ -239,14 +237,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 VideoPlayerController videoPlayerController = _videoContainerList[i];
                 if (videoPlayerController.GetFolderName() == folderName) {
                     VideoContainer videoContainer = videoPlayerController.GetContainer();
-                    Log("Video 1 : " + videoContainer.videoPath[0]);
-                    Log("Video 2 : " + videoContainer.videoPath[1]);
                     stereoComController.SendMessage($"{Commands.OpenFile}{Commands.Separator}{videoContainer.videoPath[0]}{Commands.Separator}{videoContainer.videoPath[1]}{Commands.Separator}{videoContainer.audioPath}");
 
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
-                    Log("Playing video: " + folderName, videoPlayerController);
                     if (sendDataToAndroid) {
                         SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
                     }
@@ -265,7 +260,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
-                    Log("Playing video: " + folderName, videoPlayerController);
                     if (sendDataToAndroid) {
                         SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
                     }
@@ -278,7 +272,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public void PlayNextVideo() {
             _index = (_index + 1) % _videoContainerList.Count;
-            Log(_index + "");
             PlayThisVideo(_videoContainerList[_index].GetFolderName());
             SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
         }
@@ -324,7 +317,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 byte[] wavData = System.IO.File.ReadAllBytes(filePath);
                 AudioClip audioClip = CreateWavClip(wavData, Path.GetFileNameWithoutExtension(filePath));
                 if (audioClip != null) {
-                    Log("Playing WAV audio...");
                     onAudioClipLoaded.Invoke(audioClip);
                 } else {
                     LogError("Error loading WAV file.");
@@ -336,7 +328,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
                     if (www.result == UnityWebRequest.Result.Success) {
                         AudioClip audioClip = DownloadHandlerAudioClip.GetContent(www);
-                        Log("Playing MP3 audio...");
                         onAudioClipLoaded.Invoke(audioClip);
                     } else {
                         LogError("Error loading MP3: " + www.error);

@@ -22,7 +22,7 @@ namespace StereoscopicComControl {
         private void LaunchComClient() {
             string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
 
-            if (!IsProcessRunning("COMBridgeAppV1.exe")) {
+            if (!IsProcessRunning("COMBridgeAppV1", out clientProcess)) {
                 if (File.Exists(clientAppPath)) {
                     clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
                     clientProcess = Process.GetProcessById(clientProcessId);
@@ -83,6 +83,9 @@ namespace StereoscopicComControl {
 
         public void Dispose() {
             running = false;
+            if (clientProcess is {HasExited: false }) {
+                clientProcess.Kill();
+            }
         }
     }
 }
