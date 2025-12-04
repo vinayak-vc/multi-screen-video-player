@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 using UnityEngine;
 
@@ -20,6 +23,7 @@ namespace StereoscopicComControl {
         private Process clientProcess;
 
         private void LaunchComClient() {
+            return;
             string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
 
             if (!IsProcessRunning("COMBridgeAppV1", out clientProcess)) {
@@ -32,7 +36,7 @@ namespace StereoscopicComControl {
 
         public void Run() {
             LaunchComClient();
-            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             while (running) {
                 using NamedPipeServerStream server = new("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
@@ -44,36 +48,55 @@ namespace StereoscopicComControl {
                 using BinaryReader br = new(server, Encoding.UTF8);
                 using BinaryWriter bw = new(server, Encoding.UTF8);
 
+                using CancellationTokenSource cts = new CancellationTokenSource();
+
+                Task readTask = Task.Run(() => ReadLoop(br, cts), cts.Token);
+                Task writeTask = Task.Run(() => WriteLoop(bw, cts), cts.Token);
+
                 try {
-                    while (running && server.IsConnected) {
-                        // ✅ blocking read – exits on disconnect
-                        uint len = br.ReadUInt32();
-                        if (len is 0 or > 1024 * 1024) {
-                            break;
-                        }
-
-                        byte[] data = br.ReadBytes((int)len);
-                        string msg = Encoding.UTF8.GetString(data);
-
-                        Log("Client → " + msg);
-
-                        // write outgoing
-                        while (outgoing.TryDequeue(out string outMsg)) {
-                            byte[] outData = Encoding.UTF8.GetBytes(outMsg);
-                            bw.Write((uint)outData.Length);
-                            bw.Write(outData);
-                            bw.Flush();
-                        }
-                    }
-                } catch (EndOfStreamException) {
-                    Log("Client stream ended");
-                } catch (IOException) {
+                    Task.WaitAny(readTask, writeTask);
+                } finally {
+                    cts.Cancel();
                     Log("Client disconnected");
-
-                    // ✅ loop repeats → pipe recreated → waits again
-                    Log("Resetting pipe...");
                     LaunchComClient();
                 }
+            }
+        }
+
+        private void ReadLoop(BinaryReader br, CancellationTokenSource cts) {
+            try {
+                while (!cts.IsCancellationRequested) {
+                    uint len = br.ReadUInt32(); // blocks
+                    if (len == 0 || len > 1024 * 1024)
+                        throw new IOException("Invalid message length");
+
+                    byte[] data = br.ReadBytes((int)len);
+                    string msg = Encoding.UTF8.GetString(data);
+
+                    Log("Client → " + msg);
+                }
+            } catch (EndOfStreamException) {
+            } catch (IOException) {
+            } finally {
+                cts.Cancel(); // kill writer
+            }
+        }
+
+        private void WriteLoop(BinaryWriter bw, CancellationTokenSource cts) {
+            try {
+                while (!cts.IsCancellationRequested) {
+                    if (outgoing.TryDequeue(out var msg)) {
+                        var data = Encoding.UTF8.GetBytes(msg);
+                        bw.Write((uint)data.Length);
+                        bw.Write(data);
+                        bw.Flush();
+                    } else {
+                        Thread.Sleep(2); // gentle backoff
+                    }
+                }
+            } catch (IOException) {
+            } finally {
+                cts.Cancel(); // kill reader
             }
         }
 

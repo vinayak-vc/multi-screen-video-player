@@ -142,9 +142,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 62
-        width: 150
-        height: 151
+        y: 87
+        width: 206
+        height: 206
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -163,10 +163,10 @@ TextureImporter:
       name: Group 28_1
       rect:
         serializedVersion: 2
-        x: 248
-        y: 43
-        width: 189
-        height: 189
+        x: 342
+        y: 61
+        width: 259
+        height: 258
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -185,10 +185,10 @@ TextureImporter:
       name: Group 28_2
       rect:
         serializedVersion: 2
-        x: 535
+        x: 737
         y: 0
-        width: 277
-        height: 275
+        width: 380
+        height: 379
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -207,10 +207,10 @@ TextureImporter:
       name: Group 28_3
       rect:
         serializedVersion: 2
-        x: 910
-        y: 43
-        width: 189
-        height: 189
+        x: 1254
+        y: 61
+        width: 258
+        height: 258
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -229,10 +229,10 @@ TextureImporter:
       name: Group 28_4
       rect:
         serializedVersion: 2
-        x: 1197
-        y: 62
-        width: 150
-        height: 151
+        x: 1649
+        y: 87
+        width: 206
+        height: 206
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -251,7 +251,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 3f58d16be6f09c54696871e7f08123d2
     internalID: 0
     vertices: []
     indices: 

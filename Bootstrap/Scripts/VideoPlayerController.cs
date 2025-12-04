@@ -12,7 +12,8 @@ using UnityEngine.Video;
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class VideoPlayerController : MonoBehaviour {
-        [SerializeField] private Canvas canvasPrefab;
+        [SerializeField]
+        private Canvas canvasPrefab;
 
         private readonly List<Canvas> _myCanvas = new();
         private VideoContainer _container;
@@ -21,11 +22,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private AudioClip _audioClip;
         private AudioSource _audioSource;
 
+        public Action VideoPlayerOnLoopPointReached;
+
         public void Init(VideoContainer container) {
             gameObject.name = container.folderName;
             _container = container;
             for (int i = 0; i < container.videoPath.Length; i++) {
-                RenderTexture renderTexture = new(Screen.width, Screen.height, 24);
+                RenderTexture renderTexture = new RenderTexture(Screen.width, Screen.height, 24);
                 GameObject videoPlayerPrefab = new();
                 videoPlayerPrefab.transform.SetParent(transform);
                 videoPlayerPrefab.transform.localPosition = Vector3.zero;
@@ -80,7 +83,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnLoopPointReached(VideoPlayer source) {
-            WindowsPlayer.Instance.PlayNextVideo();
+            if (WindowsPlayer.Instance.loop) {
+                WindowsPlayer.Instance.PlayNextVideo();
+            } else {
+                foreach (VideoPlayer videoPlayerList in GetVideoPlayerList()) {
+                    videoPlayerList.targetTexture.DiscardContents();
+                }
+            }
+
+            VideoPlayerOnLoopPointReached?.Invoke();
         }
 
         private void OnPrepareCompleted(VideoPlayer source) {
@@ -276,9 +287,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public string GetFolderPath() {
             return _container.folderPath;
         }
-        
+
         public VideoContainer GetContainer() {
             return _container;
+        }
+
+        public List<VideoPlayer> GetVideoPlayerList() {
+            return _videoPlayerList;
         }
     }
 }

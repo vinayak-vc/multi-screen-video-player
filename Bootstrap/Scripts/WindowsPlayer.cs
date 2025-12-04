@@ -31,7 +31,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private VideoPlayerController videoContainerPrefab;
 
-        private readonly List<VideoPlayerController> _videoContainerList = new List<VideoPlayerController>();
+        private readonly List<VideoPlayerController> _videoContainerList = new();
 
         [SerializeField]
         private TextMeshProUGUI ipAddress;
@@ -44,7 +44,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public bool isBothInSameScene;
 
-        private bool _loop = true;
+        public static Action VideoLoaded;
+
+        internal bool loop = false;
         private VideoPlayerController _currentVideoPlayerController;
         private string _videoPathJsonString;
         private int _index;
@@ -73,7 +75,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void Update() {
             ipAddress.gameObject.SetActive(Input.GetKey(KeyCode.F5));
 
-            if (Input.GetKeyDown(KeyCode.F4)) {
+            if (Input.GetKeyDown(KeyCode.F4) && !isBothInSameScene) {
                 windowsUIController.addNewPanel.SetActive(!windowsUIController.addNewPanel.activeInHierarchy);
                 if (_currentVideoPlayerController != null) {
                     if (windowsUIController.addNewPanel.activeInHierarchy) {
@@ -116,8 +118,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             _videoPathJsonString = JsonUtility.ToJson(containerList);
             _index = -1;
 
-            PlayNextVideo();
+            // PlayNextVideo();
             StartCoroutine(StartContinuouslyUpdateProgress());
+
+            VideoLoaded?.Invoke();
         }
 
         public void ExecuteCommand(string command) {
@@ -159,7 +163,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     break;
 
                 case Commands.Seek: {
-                    if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
+                    if (args.Length > 0 && double.TryParse(args[0], out double seekTime)) {
                         _currentVideoPlayerController.Seek(seekTime);
                     }
                     break;
@@ -199,7 +203,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                         stereoComController.SendMessage(command);
                         break;
                     case Commands.Seek: {
-                        if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
+                        if (args.Length > 0 && double.TryParse(args[0], out double seekTime)) {
                             //stereoComController.Seek(seekTime);
                         }
                         break;
@@ -229,7 +233,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void LoopChange(string loop) {
-            this._loop = bool.Parse(loop);
+            this.loop = bool.Parse(loop);
         }
 
         public void PlayThisVideoSSPlayer(string folderName, bool sendDataToAndroid = false) {
@@ -353,6 +357,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             audioClip.SetData(data, 0);
 
             return audioClip;
+        }
+
+        public VideoPlayerController GetVideoContainer(string foldername) {
+            return _videoContainerList.Find(x => x.GetFolderName() == foldername);
         }
 
         private async void OnDisable() {

@@ -131,7 +131,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     if (!streamingAsset) {
                         await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
                     }
-                    PopupManager.Instance.ShowToast("Folder Added");
+                    //PopupManager.Instance.ShowToast("Folder Added");
                 }
             } else if (!streamingAsset && addToTheList) {
                 Log($"Folder Already Added: {videoContainer.folderName}");
