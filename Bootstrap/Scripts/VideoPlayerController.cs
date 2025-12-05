@@ -47,7 +47,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 videoContainer.Prepare();
 
                 Canvas canvas = Instantiate(canvasPrefab, transform);
-                canvas.targetDisplay = i;
+                canvas.targetDisplay = i+1;
 
                 RawImage rawImage = canvas.transform.GetChild(0)
                     .GetComponent<RawImage>();

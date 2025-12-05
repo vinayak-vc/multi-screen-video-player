@@ -24,6 +24,11 @@ public class PhygitalManager : MonoBehaviour {
 
     public Button backButton;
 
+    public float maxTimeBetweenPresses = 0.3f; // seconds
+
+    private float lastPressTime;
+    private int pressCount;
+
     private IEnumerator Start() {
         adaniNaturalResourcesButtonController.Init("Adani", 0, true);
         chhatishgadhButtonController.Init("Chhattisgarh", 1, true);
@@ -40,7 +45,7 @@ public class PhygitalManager : MonoBehaviour {
 
         adaniNaturalResourcesVideoContainer.VideoPlayerOnLoopPointReached += BackButtonPressed;
         chhatishgadhVideoContainer.VideoPlayerOnLoopPointReached += BackButtonPressed;
-        
+
         backButton.onClick.AddListener(BackButtonPressed);
     }
 
@@ -51,22 +56,28 @@ public class PhygitalManager : MonoBehaviour {
         playFadeAnimationCanvasGroup.FadeIn();
     }
 
-    private void ChhatishgadhVideoLoopReached() {
-        controlsFadeAnimationCanvasGroup.FadeOut();
-        playFadeAnimationCanvasGroup.FadeIn();
-        chhatishgadhVideoContainer.gameObject.SetActive(false);
+    public void OnButtonPressed() {
+        float time = Time.time;
+
+        if (time - lastPressTime <= maxTimeBetweenPresses) {
+            pressCount++;
+        } else {
+            pressCount = 1;
+        }
+
+        lastPressTime = time;
+
+        if (pressCount == 2) {
+            OnDoublePressed();
+            pressCount = 0;
+        }
     }
 
-    private void AdaniNaturalResourcesVideoLoopReached() {
-        controlsFadeAnimationCanvasGroup.FadeOut();
-        playFadeAnimationCanvasGroup.FadeIn();
-
-        adaniNaturalResourcesVideoContainer.gameObject.SetActive(false);
-        // foreach (VideoPlayer videoPlayerList in adaniNaturalResourcesVideoContainer.GetVideoPlayerList()) {
-        //     videoPlayerList.Stop();
-        //     videoPlayerList.targetTexture.DiscardContents();
-        // }
+    private void OnDoublePressed() {
+        Log("Bye");
+        Application.Quit(0);
     }
+
 
     private void ChhatishgadhButtonClickEvent() {
         chhatishgadhVideoContainer.gameObject.SetActive(true);

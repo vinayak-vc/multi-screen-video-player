@@ -25,8 +25,10 @@ namespace StereoscopicComControl {
         private Process? clientProcess;
         private int clientProcessId;
 
+        public static Action ClientConnected;
+
         private void LaunchComClient() {
-            // return;
+             return;
             string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
 
             if (!IsProcessRunning("COMBridgeAppV1", out clientProcess)) {
@@ -53,8 +55,9 @@ namespace StereoscopicComControl {
                     } catch (OperationCanceledException) {
                         break;
                     }
-                    Log("Client connected");
 
+                    Log("Client connected");
+                    ClientConnected?.Invoke();
                     using BinaryReader br = new(server, Encoding.UTF8, leaveOpen: true);
                     using BinaryWriter bw = new(server, Encoding.UTF8, leaveOpen: true);
 

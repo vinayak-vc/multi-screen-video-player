@@ -91,6 +91,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private TextMeshProUGUI currentPlayingVideoNameText;
 
+        [SerializeField]
+        private bool ignoreHighlightButtons;
+
+        public static Action ConnectionSuccesfull;
+
         private readonly List<ButtonController> _buttonControllerList = new();
 
         private readonly float[] _playbackSpeeds = { 1f, 1.5f, 2f, 2.5f, 3f };
@@ -215,6 +220,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private IEnumerator ConnectionSuccessful() {
             AndroidPlayer.Instance.GetVideoName();
+            ConnectionSuccesfull?.Invoke();
             yield return new WaitForSeconds(2f);
             autoConnectText.text = "Connected";
             yield return new WaitForSeconds(1f);
@@ -333,7 +339,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 for (int i = 0; i < vName.videoContainerList.Count; i++) {
                     VideoContainer videoPlayerController = vName.videoContainerList[i];
                     ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                    buttonController.Init(videoPlayerController.folderName, i);
+                    buttonController.Init(videoPlayerController.folderName, i, ignoreHighlightButtons);
                     _buttonControllerList.Add(buttonController);
                 }
                 yield return new WaitForEndOfFrame();
@@ -363,7 +369,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 .name);
         }
 
-        private void OnLoopToggleValueChanged(bool arg0) {
+        public void OnLoopToggleValueChanged(bool arg0) {
             SendCommandToServer($"{Commands.Loop}{Commands.Separator}{arg0}");
         }
 
@@ -398,7 +404,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 VideoContainer videoPlayerController = JsonUtility.FromJson<VideoContainer>(s);
                 ;
                 ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count);
+                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count, ignoreHighlightButtons);
                 _buttonControllerList.Add(buttonController);
                 yield return new WaitForEndOfFrame();
                 gridLayoutGroup.enabled = false;

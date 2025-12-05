@@ -69,5 +69,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             transform.DOScale(Vector3.one, 0.2f)
                 .SetEase(Ease.OutBack);
         }
+
+        public Button GetButton() {
+            return button;
+        }
     }
 }

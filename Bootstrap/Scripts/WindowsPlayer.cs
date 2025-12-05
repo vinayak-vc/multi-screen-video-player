@@ -61,6 +61,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             ipAddress.text = IPManager.GetIP(ADDRESSFAM.IPv4);
         }
 
+        private void OnEnable() {
+            StereoscopicComController.ClientConnected += SSClinetConnected;
+        }
+
+
+
+
         private void Start() {
             try {
                 if (ssPlayer) {
@@ -96,6 +103,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
+        private void SSClinetConnected() {
+            StartCoroutine(enumerator());
+            IEnumerator enumerator() {
+                yield return new WaitForSecondsRealtime(5);
+                stereoComController.SendMessage("EnterFullscreen");
+                stereoComController.SendMessage($"SetViewingMethod{Commands.Separator}SideBySide");
+            }
+        }
+
         public void FillVideoContainerList(VideoContainerList containerList) {
             // Check if multiple displays exist
             for (int i = 1; i < Display.displays.Length; i++) {
@@ -111,7 +127,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             if (containerList.videoContainerList != null) {
                 for (int i = 0; i < containerList.videoContainerList[0].videoPath.Length; i++) {
                     Camera cam = Instantiate(cameraPrefab, transform);
-                    cam.targetDisplay = i;
+                    cam.targetDisplay = i + 1;
                 }
             }
 
@@ -127,20 +143,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public void ExecuteCommand(string command) {
             Log($"Executing Command : {command}");
             string[] parts = command.Split(Commands.Separator);
-            if (ssPlayer) {
-                if (parts.Length > 1) {
-                    ExecuteCommandSSVideoPlayer(parts[0], parts.Skip(1)
-                        .ToArray());
-                } else {
-                    ExecuteCommandSSVideoPlayer(parts[0]);
-                }
+            if (parts.Length > 1) {
+                ExecuteCommandVideoPlayer(parts[0], parts.Skip(1)
+                    .ToArray());
             } else {
-                if (parts.Length > 1) {
-                    ExecuteCommandVideoPlayer(parts[0], parts.Skip(1)
-                        .ToArray());
-                } else {
-                    ExecuteCommandVideoPlayer(parts[0]);
-                }
+                ExecuteCommandVideoPlayer(parts[0]);
             }
         }
 
@@ -187,48 +194,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     LoopChange(args[0]);
                     return;
             }
-        }
-
-        [ContextMenu("PlayThisVideoSSPlayer")]
-        private void PlayThisVideoSSPlayer() {
-            ExecuteCommandSSVideoPlayer("Play");
-        }
-
-        public void ExecuteCommandSSVideoPlayer(string command, params string[] args) {
-            try {
-                switch (command) {
-                    case Commands.Play:
-                    case Commands.Pause:
-                    case Commands.Stop:
-                        stereoComController.SendMessage(command);
-                        break;
-                    case Commands.Seek: {
-                        if (args.Length > 0 && double.TryParse(args[0], out double seekTime)) {
-                            //stereoComController.Seek(seekTime);
-                        }
-                        break;
-                    }
-
-                    case Commands.SetPlaybackSpeed: {
-                        if (float.TryParse(args[0], out float speed)) {
-                            //stereoComController.SetPlaybackSpeed(speed);
-                        }
-                        break;
-                    }
-
-                    case Commands.NameVideo:
-                        NameVideoSS();
-                        return;
-
-                    case Commands.PlayThisVideo:
-                        PlayThisVideoSSPlayer(args[0]);
-                        return;
-                    case Commands.Loop:
-                        LoopChange(args[0]);
-                        return;
-                }
-            } catch (Exception e) {
-                LogError($"Error executing command {command}: {e.Message}");
+            if (ssPlayer) {
+                stereoComController.SendMessage(command);
             }
         }
 
@@ -236,30 +203,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             this.loop = bool.Parse(loop);
         }
 
-        public void PlayThisVideoSSPlayer(string folderName, bool sendDataToAndroid = false) {
-            for (int i = 0; i < _videoContainerList.Count; i++) {
-                VideoPlayerController videoPlayerController = _videoContainerList[i];
-                if (videoPlayerController.GetFolderName() == folderName) {
-                    VideoContainer videoContainer = videoPlayerController.GetContainer();
-                    stereoComController.SendMessage($"{Commands.OpenFile}{Commands.Separator}{videoContainer.videoPath[0]}{Commands.Separator}{videoContainer.videoPath[1]}{Commands.Separator}{videoContainer.audioPath}");
-
-                    _currentVideoPlayerController = videoPlayerController;
-                    _index = i;
-                    windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
-                    if (sendDataToAndroid) {
-                        SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
-                    }
-                } else {
-                    videoPlayerController.Stop();
-                    windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].DeHighLightButton();
-                }
-            }
-        }
-
         public void PlayThisVideo(string folderName, bool sendDataToAndroid = false) {
             for (int i = 0; i < _videoContainerList.Count; i++) {
                 VideoPlayerController videoPlayerController = _videoContainerList[i];
                 if (videoPlayerController.GetFolderName() == folderName) {
+                    if (ssPlayer) {
+                        VideoContainer videoContainer = videoPlayerController.GetContainer();
+                        stereoComController.SendMessage($"{Commands.OpenFile}{Commands.Separator}{videoContainer.videoPath[0]}{Commands.Separator}{videoContainer.videoPath[1]}{Commands.Separator}{videoContainer.audioPath}");
+                    }
                     videoPlayerController.Play();
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;
@@ -363,14 +314,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             return _videoContainerList.Find(x => x.GetFolderName() == foldername);
         }
 
-        private async void OnDisable() {
+        private void OnDisable() {
             try {
-                stereoComController.Dispose();
-            } catch (Exception e) {
-                // ignored
-            }
-            if (BootstrapManager.Instance) {
-                BootstrapManager.Instance.DisconnectServer();
+                stereoComController?.Dispose();
+            } finally {
+                if (BootstrapManager.Instance) {
+                    BootstrapManager.Instance.DisconnectServer();
+                }
+                StereoscopicComController.ClientConnected -= SSClinetConnected;
             }
         }
     }
