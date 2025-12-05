@@ -26,7 +26,7 @@ namespace StereoscopicComControl {
         private int clientProcessId;
 
         private void LaunchComClient() {
-            return;
+            // return;
             string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
 
             if (!IsProcessRunning("COMBridgeAppV1", out clientProcess)) {
