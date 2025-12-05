@@ -65,7 +65,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             try {
                 if (ssPlayer) {
                     stereoComController = new StereoscopicComController();
-                    new Thread(stereoComController.Run) { IsBackground = true }.Start();
+                    new Thread(stereoComController.RunAsync) { IsBackground = true }.Start();
                 }
             } catch (Exception e) {
                 throw; // TODO handle exception

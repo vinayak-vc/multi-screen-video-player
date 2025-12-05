@@ -96,7 +96,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnPrepareCompleted(VideoPlayer source) {
             source.frame = 0;
-            Log("VideoPlayer Prepare Completed : " + source.name, source);
         }
 
         public void Play() {

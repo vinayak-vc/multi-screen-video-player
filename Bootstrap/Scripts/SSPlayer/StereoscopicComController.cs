@@ -17,10 +17,13 @@ using Modules.Utility;
 
 namespace StereoscopicComControl {
     public class StereoscopicComController {
-        private bool running = true;
-        private ConcurrentQueue<string> outgoing = new();
-        private int clientProcessId = -1;
-        private Process clientProcess;
+        private readonly string pipeName = "CR7";
+        private readonly CancellationTokenSource _cts = new();
+        private readonly ConcurrentQueue<string> _outgoing = new();
+        private readonly SemaphoreSlim _sendSignal = new(0);
+        private Task? _serverTask;
+        private Process? clientProcess;
+        private int clientProcessId;
 
         private void LaunchComClient() {
             return;
@@ -34,81 +37,129 @@ namespace StereoscopicComControl {
             }
         }
 
-        public void Run() {
-            LaunchComClient();
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+        public async void RunAsync() {
+            try {
+                CancellationToken token = _cts.Token;
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-            while (running) {
-                using NamedPipeServerStream server = new("CR7", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
-
-                Log("Waiting for client...");
-                server.WaitForConnection();
-                Log("Client connected");
-
-                using BinaryReader br = new(server, Encoding.UTF8);
-                using BinaryWriter bw = new(server, Encoding.UTF8);
-
-                using CancellationTokenSource cts = new CancellationTokenSource();
-
-                Task readTask = Task.Run(() => ReadLoop(br, cts), cts.Token);
-                Task writeTask = Task.Run(() => WriteLoop(bw, cts), cts.Token);
-
-                try {
-                    Task.WaitAny(readTask, writeTask);
-                } finally {
-                    cts.Cancel();
-                    Log("Client disconnected");
+                while (!token.IsCancellationRequested) {
                     LaunchComClient();
+
+                    await using NamedPipeServerStream server = new(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous);
+
+                    Log("Waiting for client...");
+                    try {
+                        await server.WaitForConnectionAsync(token); // non‑blocking
+                    } catch (OperationCanceledException) {
+                        break;
+                    }
+                    Log("Client connected");
+
+                    using BinaryReader br = new(server, Encoding.UTF8, leaveOpen: true);
+                    using BinaryWriter bw = new(server, Encoding.UTF8, leaveOpen: true);
+
+                    CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    Task readTask = ReadLoopAsync(br, linkedCts.Token);
+                    Task writeTask = WriteLoopAsync(bw, linkedCts.Token);
+
+                    Task completed = await Task.WhenAny(readTask, writeTask);
+                    linkedCts.Cancel(); // stop the other side
+
+                    try {
+                        await Task.WhenAll(readTask, writeTask);
+                    } catch { /* ignore read/write errors here */
+                    }
+
+                    Log("Client disconnected");
                 }
+            } catch {
+                // ignored
             }
         }
 
-        private void ReadLoop(BinaryReader br, CancellationTokenSource cts) {
+        private async Task ReadLoopAsync(BinaryReader br, CancellationToken token) {
             try {
-                while (!cts.IsCancellationRequested) {
-                    uint len = br.ReadUInt32(); // blocks
+                Stream baseStream = br.BaseStream;
+                byte[] lenBuffer = new byte[4];
+
+                while (!token.IsCancellationRequested) {
+                    // Read length prefix
+                    int read = await baseStream.ReadAsync(lenBuffer.AsMemory(0, 4), token);
+                    if (read == 0)
+                        break; // client closed
+
+                    if (read < 4)
+                        throw new IOException("Incomplete length prefix");
+
+                    uint len = BitConverter.ToUInt32(lenBuffer, 0);
                     if (len == 0 || len > 1024 * 1024)
                         throw new IOException("Invalid message length");
 
-                    byte[] data = br.ReadBytes((int)len);
-                    string msg = Encoding.UTF8.GetString(data);
+                    var data = new byte[len];
+                    int offset = 0;
+                    while (offset < len) {
+                        int n = await baseStream.ReadAsync(data.AsMemory(offset, (int)len - offset), token);
+                        if (n == 0)
+                            throw new EndOfStreamException();
+                        offset += n;
+                    }
 
+                    string msg = Encoding.UTF8.GetString(data);
                     Log("Client → " + msg);
+
+                    // Optionally enqueue to main thread via a thread‑safe queue
                 }
-            } catch (EndOfStreamException) {
-            } catch (IOException) {
-            } finally {
-                cts.Cancel(); // kill writer
+            } catch (OperationCanceledException ex) {
+                Log("Pipe write failed: " + ex.Message);
+            } catch (EndOfStreamException ex) {
+                Log("Pipe write failed: " + ex.Message);
+            } catch (IOException ex) {
+                Log("Pipe write failed: " + ex.Message);
             }
         }
 
-        private void WriteLoop(BinaryWriter bw, CancellationTokenSource cts) {
+        private async Task WriteLoopAsync(BinaryWriter bw, CancellationToken token) {
+            var baseStream = bw.BaseStream;
             try {
-                while (!cts.IsCancellationRequested) {
-                    if (outgoing.TryDequeue(out var msg)) {
-                        var data = Encoding.UTF8.GetBytes(msg);
-                        bw.Write((uint)data.Length);
-                        bw.Write(data);
-                        bw.Flush();
-                    } else {
-                        Thread.Sleep(2); // gentle backoff
+                while (!token.IsCancellationRequested) {
+                    // Wait until there is something to send
+                    await _sendSignal.WaitAsync(token);
+
+                    while (_outgoing.TryDequeue(out var msg)) {
+                        if (!baseStream.CanWrite)
+                            return;
+
+                        byte[] data = Encoding.UTF8.GetBytes(msg);
+                        byte[] lenBytes = BitConverter.GetBytes((uint)data.Length);
+
+                        await baseStream.WriteAsync(lenBytes.AsMemory(0, 4), token);
+                        await baseStream.WriteAsync(data.AsMemory(0, data.Length), token);
+                        await baseStream.FlushAsync(token);
                     }
                 }
-            } catch (IOException) {
-            } finally {
-                cts.Cancel(); // kill reader
+            } catch (OperationCanceledException ex) {
+                Log("Pipe write failed: " + ex.Message);
+            } catch (IOException ex) {
+                Log("Pipe write failed: " + ex.Message);
             }
         }
 
         public void SendMessage(string msg) {
-            outgoing.Enqueue(msg);
+            _outgoing.Enqueue(msg);
+            _sendSignal.Release();
         }
 
         public void Dispose() {
-            running = false;
-            if (clientProcess is {HasExited: false }) {
+            _cts.Cancel();
+            try {
+                _serverTask?.Wait(1000);
+            } catch {
+            }
+            if (clientProcess is { HasExited: false }) {
                 clientProcess.Kill();
             }
+            _cts.Dispose();
+            _sendSignal.Dispose();
         }
     }
 }
