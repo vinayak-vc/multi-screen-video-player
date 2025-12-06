@@ -28,12 +28,12 @@ namespace StereoscopicComControl {
         public static Action ClientConnected;
 
         private void LaunchComClient() {
-            return;
+            //return;
             string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
 #if !UNITY_EDITOR
             if (!IsProcessRunning("COMBridgeAppV1", out clientProcess)) {
                 if (File.Exists(clientAppPath)) {
-                    clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", false);
+                    clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
                     clientProcess = Process.GetProcessById(clientProcessId);
                 }
             }
