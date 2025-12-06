@@ -62,7 +62,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnEnable() {
-            StereoscopicComController.ClientConnected += SSClinetConnected;
+            //StereoscopicComController.ClientConnected += EnterFullScreenSSplayer;
         }
 
 
@@ -103,12 +103,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        private void SSClinetConnected() {
-            StartCoroutine(enumerator());
+        private void EnterFullScreenSSplayer() {
+            //StartCoroutine(enumerator());
             IEnumerator enumerator() {
-                yield return new WaitForSecondsRealtime(5);
                 stereoComController.SendMessage("EnterFullscreen");
-                stereoComController.SendMessage($"SetViewingMethod{Commands.Separator}SideBySide");
+                yield return new WaitForSecondsRealtime(1);
+                stereoComController.SendMessage($"SetViewingMethod{Commands.Separator}ColumnInterleaved");
             }
         }
 
@@ -169,7 +169,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     _currentVideoPlayerController.Restart();
                     break;
 
-                case Commands.Seek: {
+                case Commands.SetPosition: {
                     if (args.Length > 0 && double.TryParse(args[0], out double seekTime)) {
                         _currentVideoPlayerController.Seek(seekTime);
                     }
@@ -193,9 +193,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 case Commands.Loop:
                     LoopChange(args[0]);
                     return;
+                case Commands.FullScreen:
+                    EnterFullScreenSSplayer();
+                    break;
             }
             if (ssPlayer) {
-                stereoComController.SendMessage(command);
+                if (args.Length > 0) {
+                    stereoComController.SendMessage($"{command}{Commands.Separator}{args[0]}");
+                } else {
+                    stereoComController.SendMessage(command);
+                }
             }
         }
 
@@ -321,7 +328,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 if (BootstrapManager.Instance) {
                     BootstrapManager.Instance.DisconnectServer();
                 }
-                StereoscopicComController.ClientConnected -= SSClinetConnected;
+                //StereoscopicComController.ClientConnected -= EnterFullScreenSSplayer;
             }
         }
     }

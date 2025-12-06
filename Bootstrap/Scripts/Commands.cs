@@ -12,7 +12,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string Mute = "Mute";
         public const string Unmute = "Unmute";
         public const string ToggleMute = "ToggleMute";
-        public const string Seek = "Seek";
+        public const string SetPosition = "SetPosition";
         public const string SetPlaybackSpeed = "SetPlaybackSpeed";
         public const string SliderData = "SliderData";
         public const string NameVideo = "NameVideo";
@@ -20,6 +20,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string Loop = "Loop";
         public const string NewVideo = "NewVideo";
         public const string OpenFile = "OpenFile";
+        public const string FullScreen = "FullScreen";
     }
 
     [Serializable]

@@ -21,6 +21,7 @@ public class ImmersiveManager : MonoBehaviour {
 
     private void Start() {
         buttonControllers[0].GetButton().onClick.AddListener(PlayButtonClickEvent);
+        buttonControllers[0].GetButton().onClick.AddListener(mobileUIController.SetFullScreenSSPlayer);
         buttonControllers[0].Init("The transformation", 0, true);
 
         //buttonControllers[1].Init("Smart technology automation", 1, true);
@@ -49,8 +50,9 @@ public class ImmersiveManager : MonoBehaviour {
         playFadeAnimationCanvasGroup.FadeOut();
     }
 
-    private void BackButtonClickEvent() {
+    public void BackButtonClickEvent() {
         controlsFadeAnimationCanvasGroup.FadeOut();
         playFadeAnimationCanvasGroup.FadeIn();
+        mobileUIController.OnStopButtonClicked();
     }
 }

@@ -246,7 +246,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             SendCommandToServer(Commands.Pause);
         }
 
-        private void OnStopButtonClicked() {
+        public void OnStopButtonClicked() {
             SendCommandToServer(Commands.Stop);
         }
 
@@ -323,7 +323,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void SendSeekCommand(float time) {
-            SendCommandToServer($"{Commands.Seek}{Commands.Separator}{time}");
+            SendCommandToServer($"{Commands.SetPosition}{Commands.Separator}{time}");
         }
 
         public void SetVideoName(VideoContainerList vName, string ind) {
@@ -371,6 +371,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public void OnLoopToggleValueChanged(bool arg0) {
             SendCommandToServer($"{Commands.Loop}{Commands.Separator}{arg0}");
+        }
+
+        public void SetFullScreenSSPlayer() {
+            SendCommandToServer(Commands.FullScreen);
         }
 
         internal void SendCommandToServer(string command) {
