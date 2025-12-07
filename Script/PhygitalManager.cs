@@ -9,6 +9,7 @@ using UnityEngine.UI;
 using UnityEngine.Video;
 
 using ViitorCloud.MultiScreenVideoPlayer;
+using System.IO;
 
 
 public class PhygitalManager : MonoBehaviour {
@@ -25,6 +26,11 @@ public class PhygitalManager : MonoBehaviour {
     public Button backButton;
 
     public float maxTimeBetweenPresses = 0.3f; // seconds
+
+    public VideoPlayer videoPlayer1;
+    public VideoPlayer videoPlayer2;
+    private string bgVideoPath1;
+    private string bgVideoPath2;
 
     private float lastPressTime;
     private int pressCount;
@@ -47,6 +53,25 @@ public class PhygitalManager : MonoBehaviour {
         chhatishgadhVideoContainer.VideoPlayerOnLoopPointReached += BackButtonPressed;
 
         backButton.onClick.AddListener(BackButtonPressed);
+
+        bgVideoPath1 = Path.Combine(Application.streamingAssetsPath, "bgVideo1.mp4");
+        bgVideoPath2 = Path.Combine(Application.streamingAssetsPath, "bgVideo2.mp4");
+        VideoPlayerAssignemnt(videoPlayer1 , bgVideoPath1);
+        VideoPlayerAssignemnt(videoPlayer2, bgVideoPath2);
+    }
+
+    private void VideoPlayerAssignemnt(VideoPlayer videoPlayer , string bgVideoPath) {
+        videoPlayer.source = VideoSource.Url;
+        videoPlayer.isLooping = true;
+        videoPlayer.audioOutputMode = VideoAudioOutputMode.None;
+        videoPlayer.url = bgVideoPath;
+        videoPlayer.Prepare();
+        videoPlayer.prepareCompleted += VideoPlayer_prepareCompleted;
+    }
+
+    private void VideoPlayer_prepareCompleted(VideoPlayer source) {
+        source.prepareCompleted -= VideoPlayer_prepareCompleted;
+        source.Play();
     }
 
     private void BackButtonPressed() {
