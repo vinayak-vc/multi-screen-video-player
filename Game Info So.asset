@@ -72,7 +72,7 @@ MonoBehaviour:
     properties:
       title: Phygital Experience
       companyName: ViitorCloud
-      bundleId: com.vc.phygital.video.player
+      bundleId: com.viitorcloud.sutrasignalcontroller
       version: 2.0.1
       versionCode: 3
       icon: {fileID: 2800000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
