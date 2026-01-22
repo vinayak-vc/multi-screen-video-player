@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 using Coffee.UIEffects;
 
@@ -27,14 +28,25 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private UIEffect highlightObject;
 
+        [SerializeField]
+        private RawImage buttonImage;
+
         private bool _ignoreHighlight;
         private int _myIndex;
 
-        public void Init(string folderName, int index, bool ignoreHighlight = false) {
+        public void Init(string folderName, int index,string base64, bool ignoreHighlight = false) {
             buttonText.text = folderName;
             _myIndex = index;
             name = folderName;
             _ignoreHighlight = ignoreHighlight;
+            if (buttonImage && base64 != string.Empty) {
+                try {
+                    buttonImage.texture = Modules.Utility.Utility.Base64ToTexture(base64);
+                } catch {
+                    // ignored
+                }
+                buttonImage.enabled = buttonImage.texture;
+            }
         }
 
         private void OnEnable() {
@@ -54,20 +66,18 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public void HighLightButton() {
             if (_ignoreHighlight) return;
 
-            //highlightObject.enabled = true;
+            highlightObject.enabled = true;
             transform.SetAsLastSibling();
             button.image.sprite = variation2;
-            transform.DOScale(Vector3.one * 1.5f, 0.2f)
-                .SetEase(Ease.OutBack);
+            transform.DOScale(Vector3.one * 1.5f, 0.2f).SetEase(Ease.OutBack);
         }
 
         public void DeHighLightButton() {
             if (_ignoreHighlight) return;
 
-            //highlightObject.enabled = false;
+            highlightObject.enabled = false;
             button.image.sprite = variation1;
-            transform.DOScale(Vector3.one, 0.2f)
-                .SetEase(Ease.OutBack);
+            transform.DOScale(Vector3.one, 0.2f).SetEase(Ease.OutBack);
         }
 
         public Button GetButton() {

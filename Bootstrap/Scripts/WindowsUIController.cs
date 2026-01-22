@@ -108,13 +108,20 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 .OrderBy(Path.GetFileName)
                 .ToArray();
             string[] videos = files.Where(file => WindowsPlayer.VideoExtensions.Contains(Path.GetExtension(file)
-                .ToLower()))
+                    .ToLower()))
                 .ToArray();
 
             string audio = files.FirstOrDefault(file => WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(file)
                 .ToLower()));
 
-            VideoContainer videoContainer = new() { folderPath = folderPath, folderName = Path.GetFileName(folderPath), videoPath = videos, audioPath = audio ?? string.Empty };
+            string folderName = Path.GetFileName(folderPath);
+            VideoContainer videoContainer = new() {
+                folderPath = folderPath,
+                folderName = folderName,
+                videoPath = videos,
+                audioPath = audio ?? string.Empty,
+                base64 = ImageFileToBase64(Path.Combine(folderPath, $"{folderName}.png"))
+            };
 
             bool alreadyExists = _videoContainerList.videoContainerList.Any(x => x.folderName == videoContainer.folderName) || FolderObjectList.ContainsKey(videoContainer.folderName);
 
@@ -149,9 +156,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private async Task LoadOrInitializeVideoList() {
             if (File.Exists(_jsonPath)) {
                 string jsonContent = await File.ReadAllTextAsync(_jsonPath);
-                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent) ?? new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent) ?? new VideoContainerList {
+                    videoContainerList = new List<VideoContainer>()
+                };
             } else {
-                _videoContainerList = new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+                _videoContainerList = new VideoContainerList {
+                    videoContainerList = new List<VideoContainer>()
+                };
                 await CreateFile(_jsonPath);
             }
         }

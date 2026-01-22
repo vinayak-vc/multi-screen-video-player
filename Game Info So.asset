@@ -21,9 +21,9 @@ MonoBehaviour:
     scenes:
     - active: 0
       scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
-    - active: 0
-      scene: {fileID: 102900000, guid: 655bc7fbd4800ee4db6500f820532804, type: 3}
     - active: 1
+      scene: {fileID: 102900000, guid: 655bc7fbd4800ee4db6500f820532804, type: 3}
+    - active: 0
       scene: {fileID: 102900000, guid: 764ea19ed585c454a8cd281316e9c846, type: 3}
     photonID: 
     agoraID: 
@@ -70,20 +70,20 @@ MonoBehaviour:
       alwaysIncludedShaders: []
       alwaysIncludedShadersVariantsCollection: []
     properties:
-      title: Phygital Experience
+      title: Immersive Experience
       companyName: ViitorCloud
       bundleId: com.viitorcloud.sutrasignalcontroller
-      version: 2.0.1
-      versionCode: 3
+      version: 3.0.0
+      versionCode: 5
       icon: {fileID: 2800000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
-      splashScreenLogo: {fileID: 0}
-      splashScreenLogoBg: {fileID: 0}
+      splashScreenLogo: {fileID: 21300000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
+      splashScreenLogoBg: {fileID: 21300000, guid: 2119a2be1b1b5004ca0593442552997e, type: 3}
       splashBgBlur: 1
       portrait: 0
       portraitUpsideDown: 0
       landscapeLeft: 1
       landscapeRight: 1
-      hostForSchemes: phygital
+      hostForSchemes: immersive
       urlSchemes: []
     packages:
       ar: 0

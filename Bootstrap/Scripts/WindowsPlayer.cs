@@ -22,8 +22,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             private set;
         }
 
-        public static readonly string[] VideoExtensions = { ".mp4" };
-        public static readonly string[] AudioExtensions = { ".wav", ".mp3" };
+        public static readonly string[] VideoExtensions = {
+            ".mp4"
+        };
+        public static readonly string[] AudioExtensions = {
+            ".wav", ".mp3"
+        };
 
         [SerializeField]
         private WindowsUIController windowsUIController;
@@ -46,11 +50,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public static Action VideoLoaded;
 
-        internal bool loop = false;
+        internal bool Loop = false;
         private VideoPlayerController _currentVideoPlayerController;
         private string _videoPathJsonString;
         private int _index;
-        private StereoscopicComController stereoComController;
+        private StereoscopicComController _stereoComController;
 
         private void Awake() {
             if (Instance == null) {
@@ -66,13 +70,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
 
-
-
         private void Start() {
             try {
                 if (ssPlayer) {
-                    stereoComController = new StereoscopicComController();
-                    new Thread(stereoComController.RunAsync) { IsBackground = true }.Start();
+                    _stereoComController = new StereoscopicComController();
+                    new Thread(_stereoComController.RunAsync) {
+                        IsBackground = true
+                    }.Start();
                 }
             } catch (Exception e) {
                 throw; // TODO handle exception
@@ -96,26 +100,44 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private IEnumerator StartContinuouslyUpdateProgress() {
             while (true) {
-                if (_currentVideoPlayerController != null && _currentVideoPlayerController.GetIsPrepared() && _currentVideoPlayerController.GetIsPlaying()) {
-                    UpdateProgress(_currentVideoPlayerController.GetTime(), _currentVideoPlayerController.GetLength());
+                if (_currentVideoPlayerController != null) {
+                    if (_currentVideoPlayerController.GetIsPrepared()) {
+                        if (_currentVideoPlayerController.GetIsPlaying()) {
+                            UpdateProgress(_currentVideoPlayerController.GetTime(), _currentVideoPlayerController.GetLength());
+                        } else {
+                            if (_currentVideoPlayerController.GetTime() - _currentVideoPlayerController.GetLength() == 0) {
+                                _currentVideoPlayerController.OnLoopPointReached(null);
+                                _currentVideoPlayerController = null;
+                            }
+                        }
+                    }
                 }
                 yield return new WaitForSecondsRealtime(1);
             }
         }
 
         private void EnterFullScreenSSplayer() {
-            //StartCoroutine(enumerator());
+            StartCoroutine(enumerator());
+            return;
+
             IEnumerator enumerator() {
-                stereoComController.SendMessage("EnterFullscreen");
+                _stereoComController.SendMessage("EnterFullscreen");
+                _stereoComController.SendMessage($"SetViewingMethod{Commands.Separator}SoftPageflip");
+                _stereoComController.SendMessage($"SetSwapEyes{Commands.Separator}true");
                 yield return new WaitForSecondsRealtime(1);
-                stereoComController.SendMessage($"SetViewingMethod{Commands.Separator}ColumnInterleaved");
             }
+        }
+        public bool IsThisSSPlayer() {
+            return ssPlayer;
         }
 
         public void FillVideoContainerList(VideoContainerList containerList) {
             // Check if multiple displays exist
-            for (int i = 1; i < Display.displays.Length; i++) {
-                Display.displays[i].Activate();
+
+            if (!IsThisSSPlayer()) {
+                for (int i = 1; i < Display.displays.Length; i++) {
+                    Display.displays[i].Activate();
+                }
             }
 
             for (int index = 0; index < containerList.videoContainerList.Count; index++) {
@@ -125,9 +147,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _videoContainerList.Add(videoPlayerController);
             }
             if (containerList.videoContainerList != null) {
-                for (int i = 0; i < containerList.videoContainerList[0].videoPath.Length; i++) {
+                if (!IsThisSSPlayer()) {
+                    for (int i = 0; i < containerList.videoContainerList[0].videoPath.Length; i++) {
+                        Camera cam = Instantiate(cameraPrefab, transform);
+                        cam.targetDisplay = i + 1;
+                    }
+                } else {
                     Camera cam = Instantiate(cameraPrefab, transform);
-                    cam.targetDisplay = i + 1;
+                    cam.targetDisplay = 0;
                 }
             }
 
@@ -199,15 +226,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
             if (ssPlayer) {
                 if (args.Length > 0) {
-                    stereoComController.SendMessage($"{command}{Commands.Separator}{args[0]}");
+                    _stereoComController.SendMessage($"{command}{Commands.Separator}{args[0]}");
                 } else {
-                    stereoComController.SendMessage(command);
+                    _stereoComController.SendMessage(command);
                 }
             }
         }
 
         private void LoopChange(string loop) {
-            this.loop = bool.Parse(loop);
+            this.Loop = bool.Parse(loop);
         }
 
         public void PlayThisVideo(string folderName, bool sendDataToAndroid = false) {
@@ -216,7 +243,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 if (videoPlayerController.GetFolderName() == folderName) {
                     if (ssPlayer) {
                         VideoContainer videoContainer = videoPlayerController.GetContainer();
-                        stereoComController.SendMessage($"{Commands.OpenFile}{Commands.Separator}{videoContainer.videoPath[0]}{Commands.Separator}{videoContainer.videoPath[1]}{Commands.Separator}{videoContainer.audioPath}");
+                        _stereoComController.SendMessage($"{Commands.OpenFile}{Commands.Separator}{videoContainer.videoPath[0]}{Commands.Separator}{videoContainer.videoPath[1]}{Commands.Separator}{videoContainer.audioPath}");
                     }
                     videoPlayerController.Play();
                     _currentVideoPlayerController = videoPlayerController;
@@ -243,11 +270,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
                 SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
             }
-        }
-
-        private void NameVideoSS() {
-            UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
-            SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
         }
 
         private void UpdateProgress(double currentTime, double length) {
@@ -298,7 +320,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        private AudioClip CreateWavClip(byte[] wavFile, string clipName = "AudioClip") {
+        private static AudioClip CreateWavClip(byte[] wavFile, string clipName = "AudioClip") {
             int headerSize = 44;
             if (wavFile.Length < headerSize) return null;
 
@@ -323,7 +345,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnDisable() {
             try {
-                stereoComController?.Dispose();
+                _stereoComController?.Dispose();
             } finally {
                 if (BootstrapManager.Instance) {
                     BootstrapManager.Instance.DisconnectServer();

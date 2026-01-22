@@ -1,8 +1,13 @@
 using Modules.Utility;
+
 using static Modules.Utility.Utility;
+
 using UnityEngine;
+
 using ViitorCloud.MultiScreenVideoPlayer;
+
 using static UnityEngine.EventSystems.EventTrigger;
+
 using System;
 
 public class ImmersiveManager : MonoBehaviour {
@@ -22,7 +27,7 @@ public class ImmersiveManager : MonoBehaviour {
     private void Start() {
         buttonControllers[0].GetButton().onClick.AddListener(PlayButtonClickEvent);
         buttonControllers[0].GetButton().onClick.AddListener(mobileUIController.SetFullScreenSSPlayer);
-        buttonControllers[0].Init("The transformation", 0, true);
+        buttonControllers[0].Init("The transformation", 0, string.Empty, true);
 
         //buttonControllers[1].Init("Smart technology automation", 1, true);
         //buttonControllers[2].Init("Advance safety and worker welfare", 2, true);

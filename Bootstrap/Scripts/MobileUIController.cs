@@ -56,6 +56,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private Button refreshButton;
 
         [SerializeField]
+        private Button fullscreenButton;
+
+        [SerializeField]
         private Toggle loopToggle;
 
         [SerializeField]
@@ -98,7 +101,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private readonly List<ButtonController> _buttonControllerList = new();
 
-        private readonly float[] _playbackSpeeds = { 1f, 1.5f, 2f, 2.5f, 3f };
+        private readonly float[] _playbackSpeeds = {
+            1f, 1.5f, 2f, 2.5f, 3f
+        };
 
         internal bool isTheSameScene;
 
@@ -119,6 +124,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             setPlaybackSpeedButton.onClick.AddListener(OnSetPlaybackSpeedClicked);
             ipButton.onClick.AddListener(IpButtonClickEvent);
             refreshButton.onClick.AddListener(RefreshButtonClickEvent);
+            fullscreenButton.onClick.AddListener(SetFullScreenSSPlayer);
+
             BootstrapManager.OnClientConnected += SuccessCallBack;
             BootstrapManager.OnClientDisconnected += OnClientDisconnected;
         }
@@ -232,6 +239,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             ipPanel.SetActive(true);
             autoConnectPanel.SetActive(false);
             ipErrorText.text = "Disconnected";
+
+            for (int i = _buttonControllerList.Count - 1; i >= 0; i--) {
+                Destroy(_buttonControllerList[i].gameObject);
+            }
+            _buttonControllerList.Clear();
         }
 
         private void OnPlayButtonClicked() {
@@ -339,7 +351,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 for (int i = 0; i < vName.videoContainerList.Count; i++) {
                     VideoContainer videoPlayerController = vName.videoContainerList[i];
                     ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                    buttonController.Init(videoPlayerController.folderName, i, ignoreHighlightButtons);
+                    buttonController.Init(videoPlayerController.folderName, i, videoPlayerController.base64, ignoreHighlightButtons);
                     _buttonControllerList.Add(buttonController);
                 }
                 yield return new WaitForEndOfFrame();
@@ -406,9 +418,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 gridLayoutGroup.enabled = true;
                 yield return new WaitForEndOfFrame();
                 VideoContainer videoPlayerController = JsonUtility.FromJson<VideoContainer>(s);
-                ;
                 ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count, ignoreHighlightButtons);
+                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count, videoPlayerController.base64, ignoreHighlightButtons);
                 _buttonControllerList.Add(buttonController);
                 yield return new WaitForEndOfFrame();
                 gridLayoutGroup.enabled = false;

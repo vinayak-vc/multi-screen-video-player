@@ -34,5 +34,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public string folderPath;
         public string[] videoPath;
         public string audioPath;
+        public string base64;
     }
 }

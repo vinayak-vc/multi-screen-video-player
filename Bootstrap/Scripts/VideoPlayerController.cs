@@ -47,50 +47,55 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 videoContainer.Prepare();
 
                 Canvas canvas = Instantiate(canvasPrefab, transform);
-                canvas.targetDisplay = i+1;
+                int increment = i + (WindowsPlayer.Instance.IsThisSSPlayer() ? 0 : 1);
+                canvas.targetDisplay = increment;
 
-                RawImage rawImage = canvas.transform.GetChild(0)
-                    .GetComponent<RawImage>();
+                RawImage rawImage = canvas.transform.GetChild(0).GetComponent<RawImage>();
                 rawImage.texture = renderTexture;
 
                 videoPlayerPrefab.name = Path.GetFileNameWithoutExtension(container.videoPath[i]) + " VideoPlayer";
-                canvas.name = $"Display {i} Canvas";
-                rawImage.name = $"{i} RawImage";
+                canvas.name = $"Display {increment} Canvas";
+                rawImage.name = $"{increment} RawImage";
 
                 _myCanvas.Add(canvas);
                 _videoPlayerList.Add(videoContainer);
+
+                if (WindowsPlayer.Instance.IsThisSSPlayer()) {
+                    canvas.enabled = false;
+                }
             }
 
-            if (container.audioPath != string.Empty) {
-                StartCoroutine(WindowsPlayer.Instance.PlayAudioFromFile(container.audioPath, (audioClip) => {
-                    _audioClip = audioClip;
-                    _audioSource = gameObject.AddComponent<AudioSource>();
-                    _audioSource.clip = _audioClip;
-                    _audioSource.loop = true;
-                }));
-            } else {
+            // if (container.audioPath != string.Empty) {
+            //     StartCoroutine(WindowsPlayer.Instance.PlayAudioFromFile(container.audioPath, (audioClip) => {
+            //         _audioClip = audioClip;
+            //         _audioSource = gameObject.AddComponent<AudioSource>();
+            //         _audioSource.clip = _audioClip;
+            //         _audioSource.loop = false;
+            //     }));
+            // } else 
+            {
                 if (_videoPlayerList is not { Count: > 1 }) return;
-                _videoPlayerList[0].audioOutputMode = VideoAudioOutputMode.Direct;
-                _videoPlayerList[0].loopPointReached += OnLoopPointReached;
+                _videoPlayerList[0].audioOutputMode = WindowsPlayer.Instance.IsThisSSPlayer() ? VideoAudioOutputMode.None : VideoAudioOutputMode.Direct;
+                //_videoPlayerList[0].loopPointReached += OnLoopPointReached;
                 _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
             }
         }
 
         private void OnDisable() {
             if (_videoPlayerList is not { Count: > 1 }) return;
-            _videoPlayerList[0].loopPointReached -= OnLoopPointReached;
+            //_videoPlayerList[0].loopPointReached -= OnLoopPointReached;
             _videoPlayerList[0].prepareCompleted -= OnPrepareCompleted;
         }
 
-        private void OnLoopPointReached(VideoPlayer source) {
-            if (WindowsPlayer.Instance.loop) {
+        public void OnLoopPointReached(VideoPlayer source) {
+            if (WindowsPlayer.Instance.Loop) {
                 WindowsPlayer.Instance.PlayNextVideo();
             } else {
                 foreach (VideoPlayer videoPlayerList in GetVideoPlayerList()) {
                     videoPlayerList.targetTexture.DiscardContents();
                 }
             }
-
+            Log("loop Point reached");
             VideoPlayerOnLoopPointReached?.Invoke();
         }
 
@@ -247,10 +252,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 return -1;
             }
 
-            if (!_videoPlayerList[0].isPlaying) {
-                LogError("VideoPlayer is not playing", gameObject);
-                return -1;
-            }
+            // if (!_videoPlayerList[0].isPlaying) {
+            //     LogError("VideoPlayer is not playing", gameObject);
+            //     return -1;
+            // }
 
             return (int)_videoPlayerList[0].time;
         }
@@ -267,14 +272,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             if (!_videoPlayerList[0].isPrepared) {
-                LogError("VideoPlayer is not prepared", gameObject);
+//                LogError("VideoPlayer is not prepared", gameObject);
                 return -1;
             }
 
-            if (!_videoPlayerList[0].isPlaying) {
-                LogError("VideoPlayer is not playing", gameObject);
-                return -1;
-            }
+            // if (!_videoPlayerList[0].isPlaying) {
+            //     LogError("VideoPlayer is not playing", gameObject);
+            //     return -1;
+            // }
 
             return (int)_videoPlayerList[0].length;
         }
