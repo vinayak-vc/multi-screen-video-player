@@ -21,6 +21,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string NewVideo = "NewVideo";
         public const string OpenFile = "OpenFile";
         public const string FullScreen = "FullScreen";
+        public const string GetImages = "GetImages";
     }
 
     [Serializable]
@@ -34,6 +35,18 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public string folderPath;
         public string[] videoPath;
         public string audioPath;
-        public string base64;
     }
+
+    [Serializable]
+    public class ThumbnailInformation {
+        public List<string> folderName;
+        public List<string> base64;
+        
+        public ThumbnailInformation() {
+            folderName = new List<string>();
+            base64 = new List<string>();
+        }
+    }
+
+
 }

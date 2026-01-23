@@ -99,3 +99,10 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 Font/TMP/*
+Bootstrap/Scripts/Websocket/node_modules/
+Bootstrap/Scripts/Websocket/unity-websocket-server-win.exe.meta
+Bootstrap/Scripts/Websocket/unity-websocket-server-macos.meta
+Bootstrap/Scripts/Websocket/unity-websocket-server-macos
+Bootstrap/Scripts/Websocket/unity-websocket-server-linux.meta
+Bootstrap/Scripts/Websocket/unity-websocket-server-linux
+Bootstrap/Scripts/Websocket/node_modules.meta

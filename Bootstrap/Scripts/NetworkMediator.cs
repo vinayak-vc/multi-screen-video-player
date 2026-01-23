@@ -1,8 +1,5 @@
 ﻿using Unity.Netcode;
 
-using UnityEngine;
-
-
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class NetworkMediator : NetworkBehaviour {
         public override void OnNetworkSpawn() {

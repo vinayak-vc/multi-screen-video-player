@@ -55,6 +55,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private string _videoPathJsonString;
         private int _index;
         private StereoscopicComController _stereoComController;
+        public BasicWebSocketClient basicWebSocketClient;
 
         private void Awake() {
             if (Instance == null) {
@@ -223,6 +224,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 case Commands.FullScreen:
                     EnterFullScreenSSplayer();
                     break;
+                case Commands.GetImages:
+                    GetImages();
+                    break;
             }
             if (ssPlayer) {
                 if (args.Length > 0) {
@@ -230,6 +234,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 } else {
                     _stereoComController.SendMessage(command);
                 }
+            }
+        }
+        private async void GetImages() {
+            try {
+                await basicWebSocketClient.Send($"{Commands.GetImages}{Commands.Separator}{windowsUIController.FillTheImages()}");
+            } catch (Exception e) {
+                //ignore
             }
         }
 

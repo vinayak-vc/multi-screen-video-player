@@ -34,20 +34,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private bool _ignoreHighlight;
         private int _myIndex;
 
-        public void Init(string folderName, int index,string base64, bool ignoreHighlight = false) {
+        public void Init(string folderName, int index, bool ignoreHighlight = false) {
             buttonText.text = folderName;
             _myIndex = index;
             name = folderName;
             _ignoreHighlight = ignoreHighlight;
-            if (buttonImage && base64 != string.Empty) {
-                try {
-                    buttonImage.texture = Modules.Utility.Utility.Base64ToTexture(base64);
-                } catch {
-                    // ignored
-                }
-                buttonImage.enabled = buttonImage.texture;
-            }
+            
         }
+        
 
         private void OnEnable() {
             button.onClick.AddListener(OnClick);
@@ -57,6 +51,17 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnDisable() {
             button.onClick.RemoveListener(OnClick);
+        }
+
+        public void FillTheThumbnail(string imagePath) {
+            if (buttonImage && imagePath != string.Empty) {
+                try {
+                    buttonImage.texture = Modules.Utility.Utility.LoadTexture(imagePath);
+                } catch {
+                    // ignored
+                }
+                buttonImage.enabled = buttonImage.texture;
+            }
         }
 
         public void OnClick() {

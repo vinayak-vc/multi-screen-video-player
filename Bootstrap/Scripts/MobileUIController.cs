@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 using DG.Tweening;
 
@@ -96,6 +97,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         [SerializeField]
         private bool ignoreHighlightButtons;
+
+        [SerializeField]
+        BasicWebSocketClient basicWebSocketClient;
 
         public static Action ConnectionSuccesfull;
 
@@ -208,6 +212,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 autoConnectPanel.SetActive(true);
                 if (BootstrapManager.Instance) {
                     BootstrapManager.Instance.Connect(ipText.text);
+                    _ = basicWebSocketClient.Connect(ipText.text);
                 }
             } else {
                 ipErrorText.text = "IP text can not be empty";
@@ -348,11 +353,19 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     yield break;
                 }
                 gridLayoutGroup.enabled = true;
+                bool isImageRequired = false;
                 for (int i = 0; i < vName.videoContainerList.Count; i++) {
                     VideoContainer videoPlayerController = vName.videoContainerList[i];
                     ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                    buttonController.Init(videoPlayerController.folderName, i, videoPlayerController.base64, ignoreHighlightButtons);
+                    buttonController.Init(videoPlayerController.folderName, i, ignoreHighlightButtons);
                     _buttonControllerList.Add(buttonController);
+                    string imagePath = Path.Combine(Application.persistentDataPath, $"{videoPlayerController.folderName}.png");
+
+                    if (!isImageRequired && !File.Exists(imagePath)) {
+                        isImageRequired = true;
+                    } else {
+                        buttonController.FillTheThumbnail(imagePath);
+                    }
                 }
                 yield return new WaitForEndOfFrame();
                 gridLayoutGroup.enabled = false;
@@ -364,6 +377,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 } catch (Exception e) {
                     LogError(e);
                 }
+                if (isImageRequired) {
+                    SendCommandToServer(Commands.GetImages);
+                }
+                Debug.Log($"isImageRequired : {isImageRequired}");
             }
         }
 
@@ -419,10 +436,24 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 yield return new WaitForEndOfFrame();
                 VideoContainer videoPlayerController = JsonUtility.FromJson<VideoContainer>(s);
                 ButtonController buttonController = Instantiate(buttonControllerPrefab, buttonControllerTransform);
-                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count, videoPlayerController.base64, ignoreHighlightButtons);
+                buttonController.Init(videoPlayerController.folderName, _buttonControllerList.Count, ignoreHighlightButtons);
                 _buttonControllerList.Add(buttonController);
                 yield return new WaitForEndOfFrame();
                 gridLayoutGroup.enabled = false;
+            }
+        }
+        public void ImagesReceived(string s) {
+            ThumbnailInformation thumbnailInformation = JsonUtility.FromJson<ThumbnailInformation>(s);
+
+            for (int i = 0; i < _buttonControllerList.Count; i++) {
+                if (_buttonControllerList[i].name == thumbnailInformation.folderName[i]) {
+                    string imagePath = Path.Combine(Application.persistentDataPath, $"{thumbnailInformation.folderName[i]}.png");
+                    if (!File.Exists(imagePath)) {
+                        File.Create(imagePath).Close();
+                        File.WriteAllBytes(imagePath, Convert.FromBase64String(thumbnailInformation.base64[i]));
+                    }
+                    _buttonControllerList[i].FillTheThumbnail(imagePath);
+                }
             }
         }
     }

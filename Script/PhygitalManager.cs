@@ -36,8 +36,8 @@ public class PhygitalManager : MonoBehaviour {
     private int pressCount;
 
     private IEnumerator Start() {
-        adaniNaturalResourcesButtonController.Init("Adani", 0,string.Empty, true);
-        chhatishgadhButtonController.Init("Chhattisgarh", 1,string.Empty, true);
+        adaniNaturalResourcesButtonController.Init("Adani", 0, true);
+        chhatishgadhButtonController.Init("Chhattisgarh", 1,true);
 
         adaniNaturalResourcesButtonController.GetComponent<Button>()
             .onClick.AddListener(AdaniNaturalResourcesButtonClickEvent);

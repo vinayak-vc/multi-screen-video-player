@@ -46,11 +46,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             await LoadOrInitializeVideoList();
 
             StreamingAssetScan();
-
+            //bool isModified = false;
             if (_videoContainerList.videoContainerList.Count > 0) {
                 // Restore existing folders
                 for (int index = 0; index < _videoContainerList.videoContainerList.Count; index++) {
                     VideoContainer folder = _videoContainerList.videoContainerList[index];
+
+                    // if (string.IsNullOrEmpty(folder.base64) || string.IsNullOrWhiteSpace(folder.base64)) {
+                    //     folder.base64 = ImageFileToBase64(Path.Combine(folder.folderPath, $"{folder.folderName}.png"));
+                    //     isModified = true;
+                    // }
                     await FillVideoContainerList(folder.folderPath, false);
                 }
                 WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
@@ -63,6 +68,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             if (WindowsPlayer.Instance.isBothInSameScene) {
                 BootstrapManager.OnClientConnected.Invoke(true);
             }
+
+            // if (isModified) {
+            //     await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+            // }
         }
         private async void OnAddNewButtonClickEvent() {
             try {
@@ -115,12 +124,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 .ToLower()));
 
             string folderName = Path.GetFileName(folderPath);
-            VideoContainer videoContainer = new() {
+            VideoContainer videoContainer = new VideoContainer {
                 folderPath = folderPath,
                 folderName = folderName,
                 videoPath = videos,
                 audioPath = audio ?? string.Empty,
-                base64 = ImageFileToBase64(Path.Combine(folderPath, $"{folderName}.png"))
+                //base64 = ImageFileToBase64(Path.Combine(folderPath, $"{folderName}.png"))
             };
 
             bool alreadyExists = _videoContainerList.videoContainerList.Any(x => x.folderName == videoContainer.folderName) || FolderObjectList.ContainsKey(videoContainer.folderName);
@@ -144,6 +153,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 Log($"Folder Already Added: {videoContainer.folderName}");
                 PopupManager.Instance.ShowPopup("Folder Already Added", MessageType.Error, PopupType.NoButton);
             }
+        }
+
+        public string FillTheImages() {
+            ThumbnailInformation thumbnailInformation = new ThumbnailInformation();
+            for (int i = 0; i < _videoContainerList.videoContainerList.Count; i++) {
+                thumbnailInformation.folderName.Add(_videoContainerList.videoContainerList[i].folderName);
+                thumbnailInformation.base64.Add(ImageFileToBase64(Path.Combine(_videoContainerList.videoContainerList[i].folderPath, $"{_videoContainerList.videoContainerList[i].folderName}.png")));
+            }
+            return JsonUtility.ToJson(thumbnailInformation);
         }
 
         public async void DeleteFolder(VideoContainer folder) {

@@ -1,4 +1,6 @@
-﻿using static Modules.Utility.Utility;
+﻿using System;
+
+using static Modules.Utility.Utility;
 
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -11,6 +13,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void Awake() {
             Instance = this;
+        }
+
+        private void OnEnable() {
+            BasicWebSocketClient.MessageReceived += ExecuteCommand;
+        }
+
+        private void OnDisable() {
+            BasicWebSocketClient.MessageReceived -= ExecuteCommand;
         }
 
         public void ExecuteCommand(string command) {
@@ -30,6 +40,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 case Commands.NewVideo:
                     Log($"Executing Command : {command}");
                     mobileUIController.NewVideoAdded(commandData[1]);
+                    break;
+                case Commands.GetImages:
+                    Log($"Executing Command : {command}");
+                    mobileUIController.ImagesReceived(commandData[1]);
                     break;
             }
         }
