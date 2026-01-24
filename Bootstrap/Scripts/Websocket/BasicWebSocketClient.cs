@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
@@ -12,6 +13,8 @@ using Modules.Utility;
 
 using static Modules.Utility.Utility;
 
+using Debug = UnityEngine.Debug;
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class BasicWebSocketClient : MonoBehaviour {
         [SerializeField] private bool isThisWindows;
@@ -19,18 +22,18 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private ClientWebSocket _socket;
         private CancellationTokenSource _cts;
 
+        private Process? clientProcess;
+        private int clientProcessId;
+
+        private void Awake() {
+            _cts = new CancellationTokenSource();
+            _socket = new ClientWebSocket();
+        }
+
         private async void Start() {
             try {
-                _cts = new CancellationTokenSource();
-                _socket = new ClientWebSocket();
-
                 if (isThisWindows) {
-                    CrossPlatformProcessLauncher.Start(
-                        Path.Combine(Application.dataPath, "unity-websocket-server-win.exe"),
-                        Application.dataPath,
-                        "",
-                        true
-                    );
+                    LaunchComClient(Path.Combine(Application.dataPath, "unity-websocket-server-win.exe"));
 
                     // ✅ Non-blocking 1 second delay
                     await Task.Delay(1000);
@@ -41,13 +44,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 Debug.LogException(e);
             }
         }
-
-
         public async Task Connect(string ip) {
             Uri serverUri = new Uri($"ws://{ip}:8484"); // change to your server
             await Connect(serverUri);
         }
-
         private async Task Connect(Uri uri) {
             try {
                 await _socket.ConnectAsync(uri, _cts.Token);
@@ -58,7 +58,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 LogError($"WebSocket connect error: {e.Message}");
             }
         }
-
         public async Task Send(string message) {
             if (_socket.State != WebSocketState.Open)
                 return;
@@ -68,7 +67,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
             await _socket.SendAsync(buffer, WebSocketMessageType.Text, true, _cts.Token);
         }
-
         private async Task ReceiveLoop() {
             byte[] buffer = new byte[4096];
 
@@ -100,9 +98,27 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 MessageReceived?.Invoke(fullMessage);
             }
         }
-
+        public void LaunchComClient(string clientAppPath) {
+            //return;
+#if !UNITY_EDITOR
+            if (!IsProcessRunning(Path.GetFileNameWithoutExtension(clientAppPath), out clientProcess)) {
+                if (File.Exists(clientAppPath)) {
+                    clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
+                    clientProcess = Process.GetProcessById(clientProcessId);
+                }
+            }
+#else
+            Process process = new Process();
+            ProcessStartInfo startInfo = process.StartInfo;
+            startInfo.FileName = clientAppPath;
+            process.Start();
+#endif
+        }
 
         private async void OnDestroy() {
+            await Disconnect();
+        }
+        public async Task Disconnect() {
             try {
                 _cts.Cancel();
 

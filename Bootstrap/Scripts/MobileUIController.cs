@@ -379,6 +379,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
                 if (isImageRequired) {
                     SendCommandToServer(Commands.GetImages);
+                } else {
+                    //_ = basicWebSocketClient.Disconnect();
                 }
                 Debug.Log($"isImageRequired : {isImageRequired}");
             }

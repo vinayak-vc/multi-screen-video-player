@@ -72,7 +72,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             if (_ignoreHighlight) return;
 
             highlightObject.enabled = true;
-            transform.SetAsLastSibling();
+            //transform.SetAsLastSibling();
             button.image.sprite = variation2;
             transform.DOScale(Vector3.one * 1.5f, 0.2f).SetEase(Ease.OutBack);
         }

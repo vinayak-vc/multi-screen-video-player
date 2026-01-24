@@ -19,6 +19,7 @@ wss.on('connection', (ws, req) => {
     for (const client of clients) {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(message);
+        //console.log('Message:', message);
       }
     }
   });

@@ -54,7 +54,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private VideoPlayerController _currentVideoPlayerController;
         private string _videoPathJsonString;
         private int _index;
-        private StereoscopicComController _stereoComController;
+        private StereoscopicComController _stereoComController = new StereoscopicComController();
         public BasicWebSocketClient basicWebSocketClient;
 
         private void Awake() {
@@ -74,10 +74,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void Start() {
             try {
                 if (ssPlayer) {
-                    _stereoComController = new StereoscopicComController();
-                    new Thread(_stereoComController.RunAsync) {
-                        IsBackground = true
-                    }.Start();
+                    _stereoComController.RunAsync(basicWebSocketClient);
+                    // _stereoComController = new StereoscopicComController();
+                    // new Thread(_stereoComController.RunAsync) {
+                    //     IsBackground = true
+                    // }.Start();
                 }
             } catch (Exception e) {
                 throw; // TODO handle exception
@@ -356,7 +357,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnDisable() {
             try {
-                _stereoComController?.Dispose();
+                //_stereoComController?.Dispose();
             } finally {
                 if (BootstrapManager.Instance) {
                     BootstrapManager.Instance.DisconnectServer();
