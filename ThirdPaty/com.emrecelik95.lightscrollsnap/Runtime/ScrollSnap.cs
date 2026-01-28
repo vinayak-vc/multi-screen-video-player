@@ -45,7 +45,7 @@ namespace LightScrollSnap {
         private bool _smoothScrolling;
         private int _selectedItemIndex;
         private float DeltaTime => deltaTimeMode == DeltaTimeMode.Scaled ? Time.deltaTime : Time.unscaledDeltaTime;
-        private ScrollRect _scrollRect;
+        public ScrollRect _scrollRect;
         private bool _snapping;
         private bool Snapped => Mathf.Abs(_nearestPos - scrollbar.value) <= snapDistanceThreshold;
         private List<RectTransform> _items;
@@ -92,7 +92,7 @@ namespace LightScrollSnap {
 
         #region PRIVATE METHODS
 
-        private void Setup() {
+        public void Setup() {
             _scrollRect = GetComponent<ScrollRect>();
             SetupItems();
         }

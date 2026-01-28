@@ -5,12 +5,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Modules.Utility;
-
 using UnityEngine;
 
 using ViitorCloud.MultiScreenVideoPlayer;
 
+using static Modules.Utility.Utility;
 
 namespace StereoscopicComControl {
     public class StereoscopicComController {
@@ -25,31 +24,14 @@ namespace StereoscopicComControl {
         public static Action ClientConnected;
         private BasicWebSocketClient _basicWebSocketClient;
 
-        private void LaunchComClient() {
-            //return;
-            string clientAppPath = Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe");
-#if !UNITY_EDITOR
-            if (!Utility.IsProcessRunning("COMBridgeAppV1", out clientProcess)) {
-                if (File.Exists(clientAppPath)) {
-                    clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
-                    clientProcess = Process.GetProcessById(clientProcessId);
-                }
-            }
-#else
-            Process process = new Process();
-            ProcessStartInfo startInfo = process.StartInfo;
-            startInfo.FileName = clientAppPath;
-            process.Start();
-#endif
-        }
 
         public void RunAsync(BasicWebSocketClient basicWebSocketClient) {
             _basicWebSocketClient = basicWebSocketClient;
-            LaunchComClient();
+            LaunchExternalExe(Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe"), out clientProcessId, out clientProcess);
         }
 
         public void SendMessage(string msg) {
-            _ = _basicWebSocketClient.Send("C"+msg);
+            _ = _basicWebSocketClient.Send("C" + msg);
         }
     }
 }

@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   effectedDistanceBasedOnItemSize: 1
   selectedItemScale: {x: 1.25, y: 1.25}
-  unselectedItemScale: {x: 1, y: 1}
+  unselectedItemScale: {x: 0.8, y: 0.8}

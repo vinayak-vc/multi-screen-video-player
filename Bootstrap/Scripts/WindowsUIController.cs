@@ -34,8 +34,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private string _jsonPath;
         private bool _isFirstTime;
 
-        private void OnEnable() => addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
-        private void OnDisable() => addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
+        private void OnEnable() {
+            addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
+        }
+        private void OnDisable() {
+            addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
+        }
 
         private void Awake() {
             FolderObjectList = new Dictionary<string, FolderObjects>();

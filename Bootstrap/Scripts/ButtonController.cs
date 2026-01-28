@@ -73,16 +73,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
             highlightObject.enabled = true;
             //transform.SetAsLastSibling();
-            button.image.sprite = variation2;
-            transform.DOScale(Vector3.one * 1.5f, 0.2f).SetEase(Ease.OutBack);
+            //button.image.sprite = variation2;
+            //transform.DOScale(Vector3.one * 1.5f, 0.2f).SetEase(Ease.OutBack);
         }
 
         public void DeHighLightButton() {
             if (_ignoreHighlight) return;
 
             highlightObject.enabled = false;
-            button.image.sprite = variation1;
-            transform.DOScale(Vector3.one, 0.2f).SetEase(Ease.OutBack);
+            //button.image.sprite = variation1;
+            //transform.DOScale(Vector3.one, 0.2f).SetEase(Ease.OutBack);
         }
 
         public Button GetButton() {

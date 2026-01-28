@@ -70,7 +70,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             //StereoscopicComController.ClientConnected += EnterFullScreenSSplayer;
         }
 
-
         private void Start() {
             try {
                 if (ssPlayer) {
@@ -357,7 +356,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnDisable() {
             try {
-                //_stereoComController?.Dispose();
             } finally {
                 if (BootstrapManager.Instance) {
                     BootstrapManager.Instance.DisconnectServer();

@@ -33,7 +33,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private async void Start() {
             try {
                 if (isThisWindows) {
-                    LaunchComClient(Path.Combine(Application.dataPath, "unity-websocket-server-win.exe"));
+                    LaunchExternalExe(Path.Combine(Application.dataPath, "unity-websocket-server-win.exe"), out clientProcessId, out clientProcess);
 
                     // ✅ Non-blocking 1 second delay
                     await Task.Delay(1000);
@@ -98,25 +98,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 MessageReceived?.Invoke(fullMessage);
             }
         }
-        public void LaunchComClient(string clientAppPath) {
-            //return;
-#if !UNITY_EDITOR
-            if (!IsProcessRunning(Path.GetFileNameWithoutExtension(clientAppPath), out clientProcess)) {
-                if (File.Exists(clientAppPath)) {
-                    clientProcessId = CrossPlatformProcessLauncher.Start(clientAppPath, Application.streamingAssetsPath, "", true);
-                    clientProcess = Process.GetProcessById(clientProcessId);
-                }
-            }
-#else
-            Process process = new Process();
-            ProcessStartInfo startInfo = process.StartInfo;
-            startInfo.FileName = clientAppPath;
-            process.Start();
-#endif
-        }
 
         private async void OnDestroy() {
+            await Send("C" + Commands.Kill);
             await Disconnect();
+            clientProcess?.Kill();
         }
         public async Task Disconnect() {
             try {

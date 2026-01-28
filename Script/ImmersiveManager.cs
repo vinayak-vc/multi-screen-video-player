@@ -1,14 +1,13 @@
-using Modules.Utility;
+using System;
 
 using static Modules.Utility.Utility;
+
+using Modules.Utility;
 
 using UnityEngine;
 
 using ViitorCloud.MultiScreenVideoPlayer;
 
-using static UnityEngine.EventSystems.EventTrigger;
-
-using System;
 
 public class ImmersiveManager : MonoBehaviour {
 
@@ -20,14 +19,17 @@ public class ImmersiveManager : MonoBehaviour {
 
     public MobileUIController mobileUIController;
 
+    public LightScrollSnap.ScrollSnap scrollSnap;
+
     private void Awake() {
         MobileUIController.ConnectionSuccesfull += ConnectionSuccesfullCallback;
+        MobileUIController.HighLightButtonEvent += HighLightButtonEvent;
     }
 
     private void Start() {
         buttonControllers[0].GetButton().onClick.AddListener(PlayButtonClickEvent);
         buttonControllers[0].GetButton().onClick.AddListener(mobileUIController.SetFullScreenSSPlayer);
-        buttonControllers[0].Init("The transformation", 0 ,true);
+        buttonControllers[0].Init("The transformation", 0, true);
 
         //buttonControllers[1].Init("Smart technology automation", 1, true);
         //buttonControllers[2].Init("Advance safety and worker welfare", 2, true);
@@ -45,9 +47,14 @@ public class ImmersiveManager : MonoBehaviour {
         mobileUIController.OnLoopToggleValueChanged(true);
     }
 
-    public void ItemSelected(RectTransform rectTransform, int index) {
-        rectTransform.GetComponent<ButtonController>().OnClick();
-        Log($"{index} {rectTransform.name}");
+    private void HighLightButtonEvent(int index) {
+        ItemSelected(index, null);
+    }
+
+    public void ItemSelected(int index, RectTransform rectTransform) {
+        // rectTransform.GetComponent<ButtonController>().OnClick();
+        Log($"{index} {index}");
+        scrollSnap.SmoothScrollToItem(index);
     }
 
     private void PlayButtonClickEvent() {
@@ -59,5 +66,11 @@ public class ImmersiveManager : MonoBehaviour {
         controlsFadeAnimationCanvasGroup.FadeOut();
         playFadeAnimationCanvasGroup.FadeIn();
         mobileUIController.OnStopButtonClicked();
+    }
+
+    private void OnDisable() {
+        MobileUIController.ConnectionSuccesfull -= ConnectionSuccesfullCallback;
+        MobileUIController.HighLightButtonEvent -= HighLightButtonEvent;
+
     }
 }

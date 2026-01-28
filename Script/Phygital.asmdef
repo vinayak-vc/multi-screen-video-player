@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "Bootstrap",
-        "Utility"
+        "Utility",
+        "LightScrollSnap"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

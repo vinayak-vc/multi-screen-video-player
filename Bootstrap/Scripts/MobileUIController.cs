@@ -101,6 +101,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         BasicWebSocketClient basicWebSocketClient;
 
+        [SerializeField] private LightScrollSnap.ScrollSnap scrollSnap;
+
         public static Action ConnectionSuccesfull;
 
         private readonly List<ButtonController> _buttonControllerList = new();
@@ -113,6 +115,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private int _playbackSpeedIndex;
         private bool _isDraggingSlider;
+
+        public static Action<int> HighLightButtonEvent;
 
         private void OnEnable() {
             loopToggle.onValueChanged.AddListener(OnLoopToggleValueChanged);
@@ -369,6 +373,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
                 yield return new WaitForEndOfFrame();
                 gridLayoutGroup.enabled = false;
+                scrollSnap.Setup();
                 try {
                     // if (ind != null && int.TryParse(ind, out int indParsed) && indParsed < _buttonControllerList.Count) {
                     //     _buttonControllerList[indParsed].HighLightButton();
@@ -379,10 +384,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
                 if (isImageRequired) {
                     SendCommandToServer(Commands.GetImages);
-                } else {
-                    //_ = basicWebSocketClient.Disconnect();
                 }
-                Debug.Log($"isImageRequired : {isImageRequired}");
             }
         }
 
@@ -418,6 +420,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public void HighLightThisButton(string s) {
             int index = int.Parse(s);
+            Log(index + " HighLightButtonEvent");
+            HighLightButtonEvent?.Invoke(index);
             for (int i = 0; i < _buttonControllerList.Count; i++) {
                 if (index == i) {
                     _buttonControllerList[i].HighLightButton();
