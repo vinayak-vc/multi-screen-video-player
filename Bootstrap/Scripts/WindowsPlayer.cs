@@ -48,6 +48,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public bool isBothInSameScene;
 
+        public bool videoPlayer360;
+        public float rotationSpeed;
+        public Transform mainCamera;
+
+        public MeshRenderer videoPlayer360Renderer;
+
         public static Action VideoLoaded;
 
         internal bool Loop = false;
@@ -64,10 +70,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 Destroy(gameObject);
             }
             ipAddress.text = IPManager.GetIP(ADDRESSFAM.IPv4);
-        }
-
-        private void OnEnable() {
-            //StereoscopicComController.ClientConnected += EnterFullScreenSSplayer;
         }
 
         private void Start() {
@@ -132,6 +134,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             return ssPlayer;
         }
 
+        public bool IsThis360VideoPlayer() {
+            return videoPlayer360;
+        }
+
         public void FillVideoContainerList(VideoContainerList containerList) {
             // Check if multiple displays exist
 
@@ -148,12 +154,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _videoContainerList.Add(videoPlayerController);
             }
             if (containerList.videoContainerList != null) {
-                if (!IsThisSSPlayer()) {
+                if (!IsThisSSPlayer() && !videoPlayer360) {
                     for (int i = 0; i < containerList.videoContainerList[0].videoPath.Length; i++) {
                         Camera cam = Instantiate(cameraPrefab, transform);
                         cam.targetDisplay = i + 1;
                     }
-                } else {
+                } else if (!videoPlayer360) {
                     Camera cam = Instantiate(cameraPrefab, transform);
                     cam.targetDisplay = 0;
                 }
@@ -227,6 +233,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 case Commands.GetImages:
                     GetImages();
                     break;
+                case Commands.Input:
+                    TrackpadInputReceived(args[0], args[1]);
+                    break;
             }
             if (ssPlayer) {
                 if (args.Length > 0) {
@@ -235,6 +244,25 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     _stereoComController.SendMessage(command);
                 }
             }
+        }
+        private void TrackpadInputReceived(string inputType, string command) {
+            switch (inputType) {
+                case Commands.InputCommands.Delta:
+                    DeltaInputReceived(command);
+                    break;
+            }
+        }
+        private void DeltaInputReceived(string command) {
+            Vector2 delta = FromString(command);
+            mainCamera.Rotate(
+                Vector3.up,
+                delta.x * rotationSpeed,
+                Space.World);
+
+            mainCamera.Rotate(
+                Vector3.right,
+                -delta.y * rotationSpeed,
+                Space.World);
         }
         private async void GetImages() {
             try {

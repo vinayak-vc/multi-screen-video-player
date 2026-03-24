@@ -103,6 +103,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -339,3 +340,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   canvasPrefab: {fileID: 9027023774879921244}
+  myVideoPlayer360Renderer: {fileID: 0}
+  renderTexture360: {fileID: 8400000, guid: 2404fe3a4fe50134ab22173626336e80, type: 2}

@@ -17,11 +17,20 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnEnable() {
             BasicWebSocketClient.MessageReceived += ExecuteCommand;
+            MobileTouchPad.TouchDeltaInput.OnDelta += OnDelta;
+            MobileTouchPad.TouchDeltaInput.OnDown += OnDown;
+            MobileTouchPad.TouchDeltaInput.SendTouchData += SendTouchData;
+            MobileTouchPad.TouchDeltaInput.OnUp += OnUp;
         }
 
         private void OnDisable() {
             BasicWebSocketClient.MessageReceived -= ExecuteCommand;
+            MobileTouchPad.TouchDeltaInput.OnDelta -= OnDelta;
+            MobileTouchPad.TouchDeltaInput.OnDown -= OnDown;
+            MobileTouchPad.TouchDeltaInput.SendTouchData -= SendTouchData;
+            MobileTouchPad.TouchDeltaInput.OnUp -= OnUp;
         }
+
 
         public void ExecuteCommand(string command) {
             string[] commandData = command.Split(Commands.Separator);
@@ -48,12 +57,29 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
+        private void OnUp() {
+            //SendInputCommandToServer(Commands.InputCommands.OnUp, Modules.Utility.Utility.ToString(obj));
+        }
+        private void SendTouchData(Vector2 obj) {
+            //SendInputCommandToServer(Commands.InputCommands.Delta, Modules.Utility.Utility.ToString(obj));
+        }
+        private void OnDown() {
+            //SendInputCommandToServer(Commands.InputCommands.Delta, Modules.Utility.Utility.ToString(obj));
+        }
+        private void OnDelta(Vector2 obj) {
+            SendInputCommandToServer(Commands.InputCommands.Delta, Modules.Utility.Utility.ToString(obj));
+        }
+
         public void GetVideoName() {
             if (mobileUIController.isTheSameScene) {
                 mobileUIController.SendCommandToServer(Commands.NameVideo);
             } else {
                 BootstrapManager.Instance.networkObject.SendCommandToServer(Commands.NameVideo);
             }
+        }
+
+        private void SendInputCommandToServer(string inputType, string command) {
+            BootstrapManager.Instance.networkObject.SendCommandToServer($"{Commands.Input}{Commands.Separator}{inputType}{Commands.Separator}{command}");
         }
     }
 }
