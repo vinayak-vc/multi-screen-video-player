@@ -29,6 +29,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private NetworkManager _networkManager;
         public NetworkMediator networkObject;
         public List<NetworkMediator> networkObjects;
+        private Coroutine _connectionCheckCoroutine;
 
         private void Awake() {
             if (Instance == null) {
@@ -64,7 +65,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void OnClientConnectedToServer(ulong obj) {
             if (!isThisWindows) {
                 _isConnected = true;
-                StopCoroutine(CheckForConnection());
+                if (_connectionCheckCoroutine != null) {
+                    StopCoroutine(_connectionCheckCoroutine);
+                    _connectionCheckCoroutine = null;
+                }
                 OnClientConnected?.Invoke(true);
             }
         }
@@ -83,7 +87,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public void Connect(string ipTextText) {
             _transport.SetConnectionData(ipTextText, (ushort)port);
             _networkManager.StartClient();
-            StartCoroutine(CheckForConnection());
+            _connectionCheckCoroutine = StartCoroutine(CheckForConnection());
         }
 
         private IEnumerator CheckForConnection() {
