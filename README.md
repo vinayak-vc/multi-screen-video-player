@@ -9,6 +9,7 @@ The architecture strictly follows a **Client-Server (Host-Remote)** model using 
 1. **Network Layer:** Standard Unity Netcode (`UnityTransport`) dynamically configuring itself as Host (if on Windows) or Client (if on Android). 
 2. **Video Rendering:** Unity's native `VideoPlayer` routing output to `RenderTexture` instances. Multiple Cameras isolate displays (e.g., Target Display 1, 2, 3), scaling out linearly with connected physical monitors.
 3. **Stereoscopic Integration:** An alternative WebSocket-based pipeline (`BasicWebSocketClient`, `StereoscopicComController`) allows the Windows Host to control external stereoscopic video software instead of local Unity UI Canvas elements.
+4. **360 Degree Video:** Supports playback of 360-degree spherical videos. Includes an interactive Android touchpad interface to capture and send camera panning data to the Windows Host.
 
 ---
 
@@ -28,6 +29,7 @@ The architecture strictly follows a **Client-Server (Host-Remote)** model using 
 * **`AndroidPlayer.cs`**: The client-side counterpart to `WindowsPlayer`. It listens for messages from the host (such as `SliderData` or `NameVideo`) and translates them into UI updates through the `MobileUIController`.
 * **`MobileUIController.cs`**: Dominates the Android UI layer. It manages the connection screen, highlights the currently playing video in the playlist, sets the seek-bar progress seamlessly, and captures remote inputs to dispatch to the network.
 * **`ImmersiveManager.cs`**: A specialized UI manager utilizing fading animations (`FadeAnimationCanvasGroup`) handles transitions between the playlist view and the full-screen playback controls.
+* **Touchpad Controls**: New scripts and interfaces capturing user swipe/delta inputs on the mobile device, utilizing the `Commands.InputCommands.Delta` structure to remotely rotate the host's 360-degree view.
 * **`SliderPointerEvents.cs`**, **`ButtonController.cs`**, **`HoverInfo.cs`**: Modular interaction scripts attached to UI components to handle scrolling, hovering, and specialized button triggers.
 
 ### Stereoscopic Support Module
@@ -48,6 +50,10 @@ The architecture strictly follows a **Client-Server (Host-Remote)** model using 
 ### `Bootstrap/Scenes/Android.unity`
 * **Role**: The Client Remote App scene.
 * **Usage**: Compiled for Android tablets or phones. Contains the IP entry screen and the remote control interface (`MobileUIController`, `AndroidPlayer`). The user carries this device to manipulate the Windows Host.
+
+### `Bootstrap/Scenes/Windows 360.unity`
+* **Role**: The Host executable scene specialized for 360-degree interactive playback.
+* **Usage**: Extends the core `WindowsPlayer` framework to render spherical content onto a dedicated `360Sphere` prefab. Processes incoming mobile Touchpad delta commands to manipulate and rotate the main camera view.
 
 ### `Bootstrap/Scenes/Mix.unity`
 * **Role**: Unified Testing/Standalone scene.

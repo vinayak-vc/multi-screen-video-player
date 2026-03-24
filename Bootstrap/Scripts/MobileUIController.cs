@@ -245,7 +245,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnClientDisconnected() {
-            ipPanel.SetActive(true);
+            //ipPanel.SetActive(true);
+            PopupManager.Instance.ShowPopup("Windows is Disconnected", MessageType.Error, PopupType.NoButton);
             autoConnectPanel.SetActive(false);
             ipErrorText.text = "Disconnected";
 
@@ -420,7 +421,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public void HighLightThisButton(string s) {
             int index = int.Parse(s);
-            Log(index + " HighLightButtonEvent");
             HighLightButtonEvent?.Invoke(index);
             for (int i = 0; i < _buttonControllerList.Count; i++) {
                 if (index == i) {

@@ -23,6 +23,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string FullScreen = "FullScreen";
         public const string GetImages = "GetImages";
         public const string Kill = "Kill";
+        public const string Input = "Input";
+        
+        public static class InputCommands {
+            public const string OnDown = "OnDown";
+            public const string OnUp = "OnUp";
+            public const string Delta = "Delta";
+            public const string CursorPoint = "CursorPoint";
+        }
+        
     }
 
     [Serializable]

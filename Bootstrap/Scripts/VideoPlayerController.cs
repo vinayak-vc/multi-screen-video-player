@@ -12,8 +12,10 @@ using UnityEngine.Video;
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class VideoPlayerController : MonoBehaviour {
+        private static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
         [SerializeField]
         private Canvas canvasPrefab;
+
 
         private readonly List<Canvas> _myCanvas = new();
         private VideoContainer _container;
@@ -24,11 +26,19 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public Action VideoPlayerOnLoopPointReached;
 
+        public MeshRenderer myVideoPlayer360Renderer;
+        public RenderTexture renderTexture360;
+
         public void Init(VideoContainer container) {
             gameObject.name = container.folderName;
             _container = container;
             for (int i = 0; i < container.videoPath.Length; i++) {
-                RenderTexture renderTexture = new RenderTexture(Screen.width, Screen.height, 24);
+                RenderTexture renderTexture;
+                if (!WindowsPlayer.Instance.IsThis360VideoPlayer()) {
+                    renderTexture = new RenderTexture(Screen.width, Screen.height, 24);
+                } else {
+                    renderTexture = new RenderTexture(renderTexture360);
+                }
                 GameObject videoPlayerPrefab = new();
                 videoPlayerPrefab.transform.SetParent(transform);
                 videoPlayerPrefab.transform.localPosition = Vector3.zero;
@@ -43,42 +53,37 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 videoContainer.url = container.videoPath[i];
                 videoContainer.audioOutputMode = VideoAudioOutputMode.None;
 
-
                 videoContainer.Prepare();
 
-                Canvas canvas = Instantiate(canvasPrefab, transform);
-                int increment = i + (WindowsPlayer.Instance.IsThisSSPlayer() ? 0 : 1);
-                canvas.targetDisplay = increment;
+                if (!WindowsPlayer.Instance.IsThis360VideoPlayer()) {
+                    Canvas canvas = Instantiate(canvasPrefab, transform);
+                    int increment = i + (WindowsPlayer.Instance.IsThisSSPlayer() ? 0 : 1);
+                    canvas.targetDisplay = increment;
 
-                RawImage rawImage = canvas.transform.GetChild(0).GetComponent<RawImage>();
-                rawImage.texture = renderTexture;
+                    RawImage rawImage = canvas.transform.GetChild(0).GetComponent<RawImage>();
+                    rawImage.texture = renderTexture;
 
-                videoPlayerPrefab.name = Path.GetFileNameWithoutExtension(container.videoPath[i]) + " VideoPlayer";
-                canvas.name = $"Display {increment} Canvas";
-                rawImage.name = $"{increment} RawImage";
+                    videoPlayerPrefab.name = Path.GetFileNameWithoutExtension(container.videoPath[i]) + " VideoPlayer";
+                    canvas.name = $"Display {increment} Canvas";
+                    rawImage.name = $"{increment} RawImage";
 
-                _myCanvas.Add(canvas);
+                    _myCanvas.Add(canvas);
+                    if (WindowsPlayer.Instance.IsThisSSPlayer()) {
+                        canvas.enabled = false;
+                    }
+                } else {
+                    myVideoPlayer360Renderer = Instantiate(WindowsPlayer.Instance.videoPlayer360Renderer);
+                    myVideoPlayer360Renderer.material = new Material(myVideoPlayer360Renderer.material);
+                    myVideoPlayer360Renderer.material.SetTexture(BaseMap, renderTexture);
+                    myVideoPlayer360Renderer.gameObject.SetActive(false);
+                }
+
                 _videoPlayerList.Add(videoContainer);
 
-                if (WindowsPlayer.Instance.IsThisSSPlayer()) {
-                    canvas.enabled = false;
-                }
             }
-
-            // if (container.audioPath != string.Empty) {
-            //     StartCoroutine(WindowsPlayer.Instance.PlayAudioFromFile(container.audioPath, (audioClip) => {
-            //         _audioClip = audioClip;
-            //         _audioSource = gameObject.AddComponent<AudioSource>();
-            //         _audioSource.clip = _audioClip;
-            //         _audioSource.loop = false;
-            //     }));
-            // } else 
-            {
-                if (_videoPlayerList is not { Count: > 1 }) return;
-                _videoPlayerList[0].audioOutputMode = WindowsPlayer.Instance.IsThisSSPlayer() ? VideoAudioOutputMode.None : VideoAudioOutputMode.Direct;
-                //_videoPlayerList[0].loopPointReached += OnLoopPointReached;
-                _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
-            }
+            if (_videoPlayerList is not { Count: > 1 }) return;
+            _videoPlayerList[0].audioOutputMode = WindowsPlayer.Instance.IsThisSSPlayer() ? VideoAudioOutputMode.None : VideoAudioOutputMode.Direct;
+            _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
         }
 
         private void OnDisable() {
@@ -125,8 +130,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     LogError("VideoPlayerList is null", gameObject);
                 }
 
-                for (int i = 0; i < _myCanvas.Count; i++) {
-                    _myCanvas[i].gameObject.SetActive(true);
+                if (!WindowsPlayer.Instance.IsThis360VideoPlayer()) {
+                    for (int i = 0; i < _myCanvas.Count; i++) {
+                        _myCanvas[i].gameObject.SetActive(true);
+                    }
+                } else {
+                    myVideoPlayer360Renderer.gameObject.SetActive(true);
                 }
             }
         }
@@ -143,8 +152,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             } else {
                 LogError("VideoPlayerList is null", gameObject);
             }
-            for (int i = 0; i < _myCanvas.Count; i++) {
-                _myCanvas[i].gameObject.SetActive(false);
+            if (!WindowsPlayer.Instance.IsThis360VideoPlayer()) {
+                for (int i = 0; i < _myCanvas.Count; i++) {
+                    _myCanvas[i].gameObject.SetActive(false);
+                }
+            } else {
+                myVideoPlayer360Renderer.gameObject.SetActive(false);
             }
         }
 
