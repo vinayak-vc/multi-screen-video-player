@@ -8,7 +8,8 @@
         "popupmanager",
         "Unity.Networking.Transport",
         "Coffee.UIEffect",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "LightScrollSnap"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,87 +1,37 @@
 using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
+using UnityEngine;
+
+using ViitorCloud.MultiScreenVideoPlayer;
+
+using static Modules.Utility.Utility;
 
 namespace StereoscopicComControl {
-    public class StereoscopicComController : IDisposable {
-        private dynamic _playerCom;
+    public class StereoscopicComController {
+        private readonly string pipeName = "CR7";
+        private readonly CancellationTokenSource _cts = new();
+        private readonly ConcurrentQueue<string> _outgoing = new();
+        private readonly SemaphoreSlim _sendSignal = new(0);
+        private Task? _serverTask;
+        private Process? clientProcess;
+        private int clientProcessId;
 
-        public bool IsConnected => _playerCom != null;
+        public static Action ClientConnected;
+        private BasicWebSocketClient _basicWebSocketClient;
 
-        public bool Connect() {
-            if (_playerCom != null)
-                return true;
 
-            // 1. Try to attach to a running instance
-            Type t = Type.GetTypeFromProgID("StereoPlayer.Automation");
-            if (t == null)
-                return false; // ProgID not registered
-
-            try {
-                // Creates or gets a running COM instance, depending on implementation
-                _playerCom = Activator.CreateInstance(t);
-                return true;
-            } catch (Exception) {
-                _playerCom = null;
-                return false;
-            }
+        public void RunAsync(BasicWebSocketClient basicWebSocketClient) {
+            _basicWebSocketClient = basicWebSocketClient;
+            LaunchExternalExe(Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe"), out clientProcessId, out clientProcess);
         }
 
-        public void OpenLeftRightFiles(string leftVideo, string rightVideo, string audioPath) {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-
-            // Adjust method name & parameters according to official automation docs
-            _playerCom.OpenLeftRightFiles(leftVideo, rightVideo, audioPath, 1);
-        }
-
-        public void Play() {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(0);
-        }
-
-        public void Pause() {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(1);
-        }
-
-        public void Stop() {
-            if (_playerCom == null) throw new InvalidOperationException("Not connected to Stereoscopic Player COM.");
-            _playerCom.SetPlaybackState(2);
-        }
-
-        bool isMuted = false;
-        private float volume = 1;
-
-        public void ToggleMute() {
-            if (isMuted) {
-                _playerCom.SetVolume(1);
-            } else {
-                _playerCom.SetVolume(0);
-            }
-            isMuted = !isMuted;
-        }
-
-        public void Restart() {
-            _playerCom.Replay();
-        }
-
-        public void Seek(double seekTime) {
-            throw new NotImplementedException();
-        }
-
-        public void SetPlaybackSpeed(float result) {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose() {
-            if (_playerCom != null) {
-                try {
-                    // Optional: tell player to quit if automation supports it
-                    // _playerCom.Quit();
-                } catch {
-                }
-
-                _playerCom = null;
-            }
+        public void SendMessage(string msg) {
+            _ = _basicWebSocketClient.Send("C" + msg);
         }
     }
 }

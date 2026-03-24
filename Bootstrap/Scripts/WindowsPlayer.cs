@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.AccessControl;
+using System.Threading;
 
 using StereoscopicComControl;
 
@@ -22,8 +22,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             private set;
         }
 
-        public static readonly string[] VideoExtensions = { ".mp4" };
-        public static readonly string[] AudioExtensions = { ".wav", ".mp3" };
+        public static readonly string[] VideoExtensions = {
+            ".mp4"
+        };
+        public static readonly string[] AudioExtensions = {
+            ".wav", ".mp3"
+        };
 
         [SerializeField]
         private WindowsUIController windowsUIController;
@@ -31,7 +35,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private VideoPlayerController videoContainerPrefab;
 
-        private readonly List<VideoPlayerController> _videoContainerList = new List<VideoPlayerController>();
+        private readonly List<VideoPlayerController> _videoContainerList = new();
 
         [SerializeField]
         private TextMeshProUGUI ipAddress;
@@ -42,11 +46,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private bool ssPlayer;
 
-        private bool _loop = true;
+        public bool isBothInSameScene;
+
+        public static Action VideoLoaded;
+
+        internal bool Loop = false;
         private VideoPlayerController _currentVideoPlayerController;
         private string _videoPathJsonString;
         private int _index;
-        private StereoscopicComController stereoComController;
+        private StereoscopicComController _stereoComController = new StereoscopicComController();
+        public BasicWebSocketClient basicWebSocketClient;
 
         private void Awake() {
             if (Instance == null) {
@@ -57,16 +66,28 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             ipAddress.text = IPManager.GetIP(ADDRESSFAM.IPv4);
         }
 
+        private void OnEnable() {
+            //StereoscopicComController.ClientConnected += EnterFullScreenSSplayer;
+        }
+
         private void Start() {
-            if (ssPlayer) {
-                stereoComController = new StereoscopicComController();
+            try {
+                if (ssPlayer) {
+                    _stereoComController.RunAsync(basicWebSocketClient);
+                    // _stereoComController = new StereoscopicComController();
+                    // new Thread(_stereoComController.RunAsync) {
+                    //     IsBackground = true
+                    // }.Start();
+                }
+            } catch (Exception e) {
+                throw; // TODO handle exception
             }
         }
 
         private void Update() {
             ipAddress.gameObject.SetActive(Input.GetKey(KeyCode.F5));
 
-            if (Input.GetKeyDown(KeyCode.F4)) {
+            if (Input.GetKeyDown(KeyCode.F4) && !isBothInSameScene) {
                 windowsUIController.addNewPanel.SetActive(!windowsUIController.addNewPanel.activeInHierarchy);
                 if (_currentVideoPlayerController != null) {
                     if (windowsUIController.addNewPanel.activeInHierarchy) {
@@ -80,17 +101,44 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private IEnumerator StartContinuouslyUpdateProgress() {
             while (true) {
-                if (_currentVideoPlayerController != null && _currentVideoPlayerController.GetIsPrepared() && _currentVideoPlayerController.GetIsPlaying()) {
-                    UpdateProgress(_currentVideoPlayerController.GetTime(), _currentVideoPlayerController.GetLength());
+                if (_currentVideoPlayerController != null) {
+                    if (_currentVideoPlayerController.GetIsPrepared()) {
+                        if (_currentVideoPlayerController.GetIsPlaying()) {
+                            UpdateProgress(_currentVideoPlayerController.GetTime(), _currentVideoPlayerController.GetLength());
+                        } else {
+                            if (_currentVideoPlayerController.GetTime() - _currentVideoPlayerController.GetLength() == 0) {
+                                _currentVideoPlayerController.OnLoopPointReached(null);
+                                _currentVideoPlayerController = null;
+                            }
+                        }
+                    }
                 }
                 yield return new WaitForSecondsRealtime(1);
             }
         }
 
+        private void EnterFullScreenSSplayer() {
+            StartCoroutine(enumerator());
+            return;
+
+            IEnumerator enumerator() {
+                _stereoComController.SendMessage("EnterFullscreen");
+                _stereoComController.SendMessage($"SetViewingMethod{Commands.Separator}SoftPageflip");
+                _stereoComController.SendMessage($"SetSwapEyes{Commands.Separator}true");
+                yield return new WaitForSecondsRealtime(1);
+            }
+        }
+        public bool IsThisSSPlayer() {
+            return ssPlayer;
+        }
+
         public void FillVideoContainerList(VideoContainerList containerList) {
             // Check if multiple displays exist
-            for (int i = 1; i < Display.displays.Length; i++) {
-                Display.displays[i].Activate();
+
+            if (!IsThisSSPlayer()) {
+                for (int i = 1; i < Display.displays.Length; i++) {
+                    Display.displays[i].Activate();
+                }
             }
 
             for (int index = 0; index < containerList.videoContainerList.Count; index++) {
@@ -100,37 +148,34 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _videoContainerList.Add(videoPlayerController);
             }
             if (containerList.videoContainerList != null) {
-                for (int i = 0; i < containerList.videoContainerList[0].videoPath.Length; i++) {
+                if (!IsThisSSPlayer()) {
+                    for (int i = 0; i < containerList.videoContainerList[0].videoPath.Length; i++) {
+                        Camera cam = Instantiate(cameraPrefab, transform);
+                        cam.targetDisplay = i + 1;
+                    }
+                } else {
                     Camera cam = Instantiate(cameraPrefab, transform);
-                    cam.targetDisplay = i;
+                    cam.targetDisplay = 0;
                 }
             }
 
             _videoPathJsonString = JsonUtility.ToJson(containerList);
-            Log("Filled VideoContainerList with " + containerList.videoContainerList.Count + " valid folders.");
-
             _index = -1;
-            PlayNextVideo();
+
+            // PlayNextVideo();
             StartCoroutine(StartContinuouslyUpdateProgress());
+
+            VideoLoaded?.Invoke();
         }
 
         public void ExecuteCommand(string command) {
             Log($"Executing Command : {command}");
             string[] parts = command.Split(Commands.Separator);
-            if (ssPlayer) {
-                if (parts.Length > 1) {
-                    ExecuteCommandSSVideoPlayer(parts[0], parts.Skip(1)
-                        .ToArray());
-                } else {
-                    ExecuteCommandSSVideoPlayer(parts[0]);
-                }
+            if (parts.Length > 1) {
+                ExecuteCommandVideoPlayer(parts[0], parts.Skip(1)
+                    .ToArray());
             } else {
-                if (parts.Length > 1) {
-                    ExecuteCommandVideoPlayer(parts[0], parts.Skip(1)
-                        .ToArray());
-                } else {
-                    ExecuteCommandVideoPlayer(parts[0]);
-                }
+                ExecuteCommandVideoPlayer(parts[0]);
             }
         }
 
@@ -152,8 +197,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     _currentVideoPlayerController.Restart();
                     break;
 
-                case Commands.Seek: {
-                    if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
+                case Commands.SetPosition: {
+                    if (args.Length > 0 && double.TryParse(args[0], out double seekTime)) {
                         _currentVideoPlayerController.Seek(seekTime);
                     }
                     break;
@@ -176,71 +221,47 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 case Commands.Loop:
                     LoopChange(args[0]);
                     return;
+                case Commands.FullScreen:
+                    EnterFullScreenSSplayer();
+                    break;
+                case Commands.GetImages:
+                    GetImages();
+                    break;
+            }
+            if (ssPlayer) {
+                if (args.Length > 0) {
+                    _stereoComController.SendMessage($"{command}{Commands.Separator}{args[0]}");
+                } else {
+                    _stereoComController.SendMessage(command);
+                }
             }
         }
-
-        public void ExecuteCommandSSVideoPlayer(string command, params string[] args) {
-            switch (command) {
-                case Commands.Play:
-                    stereoComController.Play();
-                    break;
-                case Commands.Pause:
-                    stereoComController.Pause();
-                    break;
-                case Commands.Stop:
-                    stereoComController.Stop();
-                    break;
-                case Commands.ToggleMute:
-                    stereoComController.ToggleMute();
-                    break;
-                case Commands.Restart:
-                    stereoComController.Restart();
-                    break;
-
-                case Commands.Seek: {
-                    if (args.Length > 1 && double.TryParse(args[0], out double seekTime)) {
-                        stereoComController.Seek(seekTime);
-                    }
-                    break;
-                }
-
-                case Commands.SetPlaybackSpeed: {
-                    if (float.TryParse(args[0], out float speed)) {
-                        stereoComController.SetPlaybackSpeed(speed);
-                    }
-                    break;
-                }
-
-                case Commands.NameVideo:
-                    NameVideo();
-                    return;
-
-                case Commands.PlayThisVideo:
-                    PlayThisVideo(args[0]);
-                    return;
-                case Commands.Loop:
-                    LoopChange(args[0]);
-                    return;
+        private async void GetImages() {
+            try {
+                await basicWebSocketClient.Send($"{Commands.GetImages}{Commands.Separator}{windowsUIController.FillTheImages()}");
+            } catch (Exception e) {
+                //ignore
             }
         }
 
         private void LoopChange(string loop) {
-            this._loop = bool.Parse(loop);
+            this.Loop = bool.Parse(loop);
         }
 
         public void PlayThisVideo(string folderName, bool sendDataToAndroid = false) {
             for (int i = 0; i < _videoContainerList.Count; i++) {
                 VideoPlayerController videoPlayerController = _videoContainerList[i];
                 if (videoPlayerController.GetFolderName() == folderName) {
+                    if (ssPlayer) {
+                        VideoContainer videoContainer = videoPlayerController.GetContainer();
+                        _stereoComController.SendMessage($"{Commands.OpenFile}{Commands.Separator}{videoContainer.videoPath[0]}{Commands.Separator}{videoContainer.videoPath[1]}{Commands.Separator}{videoContainer.audioPath}");
+                    }
                     videoPlayerController.Play();
                     _currentVideoPlayerController = videoPlayerController;
                     _index = i;
                     windowsUIController.FolderObjectList[videoPlayerController.GetFolderName()].HighLightButton();
-                    Log("Playing video: " + folderName, videoPlayerController);
                     if (sendDataToAndroid) {
-                        if (false) {
-                        }
-                        BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+                        SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
                     }
                 } else {
                     videoPlayerController.Stop();
@@ -251,18 +272,37 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public void PlayNextVideo() {
             _index = (_index + 1) % _videoContainerList.Count;
-            Log(_index + "");
             PlayThisVideo(_videoContainerList[_index].GetFolderName());
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
+            SendCommandToClient($"{Commands.PlayThisVideo}{Commands.Separator}{_index}");
         }
 
         private void NameVideo() {
-            UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+            if (_videoContainerList.Count > 0) {
+                UpdateProgress(_videoContainerList[0].GetTime(), _videoContainerList[0].GetLength());
+                SendCommandToClient($"{Commands.NameVideo}{Commands.Separator}{_videoPathJsonString}{Commands.Separator}{_index}");
+            }
         }
 
         private void UpdateProgress(double currentTime, double length) {
-            BootstrapManager.Instance.networkObject?.SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
+            SendCommandToClient($"{Commands.SliderData}{Commands.Separator}{currentTime}{Commands.Separator}{length}");
+        }
+
+        internal void NewFolderAdded(VideoContainerList containerList) {
+            VideoPlayerController videoPlayerController = Instantiate(videoContainerPrefab, transform);
+            videoPlayerController.Init(containerList.videoContainerList[^1]);
+            _videoContainerList.Add(videoPlayerController);
+
+            _videoPathJsonString = JsonUtility.ToJson(containerList);
+            string newFodlerjson = JsonUtility.ToJson(containerList.videoContainerList[^1]);
+            SendCommandToClient($"{Commands.NewVideo}{Commands.Separator}{newFodlerjson}");
+        }
+
+        private void SendCommandToClient(string command) {
+            if (!isBothInSameScene) {
+                BootstrapManager.Instance.networkObject?.SendCommandToClient(command);
+            } else {
+                AndroidPlayer.Instance.ExecuteCommand(command);
+            }
         }
 
         public IEnumerator PlayAudioFromFile(string filePath, Action<AudioClip> onAudioClipLoaded) {
@@ -272,7 +312,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 byte[] wavData = System.IO.File.ReadAllBytes(filePath);
                 AudioClip audioClip = CreateWavClip(wavData, Path.GetFileNameWithoutExtension(filePath));
                 if (audioClip != null) {
-                    Log("Playing WAV audio...");
                     onAudioClipLoaded.Invoke(audioClip);
                 } else {
                     LogError("Error loading WAV file.");
@@ -284,7 +323,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
                     if (www.result == UnityWebRequest.Result.Success) {
                         AudioClip audioClip = DownloadHandlerAudioClip.GetContent(www);
-                        Log("Playing MP3 audio...");
                         onAudioClipLoaded.Invoke(audioClip);
                     } else {
                         LogError("Error loading MP3: " + www.error);
@@ -293,7 +331,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        private AudioClip CreateWavClip(byte[] wavFile, string clipName = "AudioClip") {
+        private static AudioClip CreateWavClip(byte[] wavFile, string clipName = "AudioClip") {
             int headerSize = 44;
             if (wavFile.Length < headerSize) return null;
 
@@ -310,6 +348,20 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             audioClip.SetData(data, 0);
 
             return audioClip;
+        }
+
+        public VideoPlayerController GetVideoContainer(string foldername) {
+            return _videoContainerList.Find(x => x.GetFolderName() == foldername);
+        }
+
+        private void OnDisable() {
+            try {
+            } finally {
+                if (BootstrapManager.Instance) {
+                    BootstrapManager.Instance.DisconnectServer();
+                }
+                //StereoscopicComController.ClientConnected -= EnterFullScreenSSplayer;
+            }
         }
     }
 }

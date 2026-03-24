@@ -15,9 +15,15 @@ using static Modules.Utility.Utility;
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class WindowsUIController : MonoBehaviour {
         public GameObject addNewPanel;
-        [SerializeField] private Button addNewButton;
-        [SerializeField] private Transform folderParent;
-        [SerializeField] private FolderObjects folderObjectPrefab;
+
+        [SerializeField]
+        private Button addNewButton;
+
+        [SerializeField]
+        private Transform folderParent;
+
+        [SerializeField]
+        private FolderObjects folderObjectPrefab;
 
         public Dictionary<string, FolderObjects> FolderObjectList {
             get;
@@ -28,8 +34,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private string _jsonPath;
         private bool _isFirstTime;
 
-        private void OnEnable() => addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
-        private void OnDisable() => addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
+        private void OnEnable() {
+            addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
+        }
+        private void OnDisable() {
+            addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
+        }
 
         private void Awake() {
             FolderObjectList = new Dictionary<string, FolderObjects>();
@@ -40,11 +50,16 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             await LoadOrInitializeVideoList();
 
             StreamingAssetScan();
-
+            //bool isModified = false;
             if (_videoContainerList.videoContainerList.Count > 0) {
                 // Restore existing folders
                 for (int index = 0; index < _videoContainerList.videoContainerList.Count; index++) {
                     VideoContainer folder = _videoContainerList.videoContainerList[index];
+
+                    // if (string.IsNullOrEmpty(folder.base64) || string.IsNullOrWhiteSpace(folder.base64)) {
+                    //     folder.base64 = ImageFileToBase64(Path.Combine(folder.folderPath, $"{folder.folderName}.png"));
+                    //     isModified = true;
+                    // }
                     await FillVideoContainerList(folder.folderPath, false);
                 }
                 WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
@@ -53,8 +68,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 addNewPanel.SetActive(true);
                 PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by clicking 'Add New Folder'");
             }
-        }
 
+            if (WindowsPlayer.Instance.isBothInSameScene) {
+                BootstrapManager.OnClientConnected.Invoke(true);
+            }
+
+            // if (isModified) {
+            //     await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+            // }
+        }
         private async void OnAddNewButtonClickEvent() {
             try {
                 string lastDir = PlayerPrefs.GetString("dir", Application.streamingAssetsPath);
@@ -66,12 +88,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     if (_isFirstTime && FolderObjectList.Count > 0) {
                         WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
                         _isFirstTime = false;
+                    } else {
                     }
+                    WindowsPlayer.Instance.NewFolderAdded(_videoContainerList);
                 } else {
                     PopupManager.Instance.ShowToast("Selected folder does not exist or is invalid");
                 }
             } catch (Exception ex) {
-                Debug.LogError($"Error adding new folder: {ex.Message}");
+                LogError($"Error adding new folder: {ex.Message}");
                 PopupManager.Instance.ShowToast("Failed to add new folder");
             }
         }
@@ -79,7 +103,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void StreamingAssetScan() {
             string path = Application.streamingAssetsPath;
             if (!Directory.Exists(path)) {
-                Debug.LogError($"StreamingAssets path not found: {path}");
                 return;
             }
 
@@ -90,7 +113,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private async Task FillVideoContainerList(string folderPath, bool addToTheList, bool streamingAsset = false) {
             if (!Directory.Exists(folderPath)) {
-                Debug.LogError($"Folder does not exist: {folderPath}");
+                LogError($"Folder does not exist: {folderPath}");
                 return;
             }
 
@@ -98,22 +121,22 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 .OrderBy(Path.GetFileName)
                 .ToArray();
             string[] videos = files.Where(file => WindowsPlayer.VideoExtensions.Contains(Path.GetExtension(file)
-                .ToLower()))
+                    .ToLower()))
                 .ToArray();
 
             string audio = files.FirstOrDefault(file => WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(file)
                 .ToLower()));
 
-            VideoContainer videoContainer = new() {
+            string folderName = Path.GetFileName(folderPath);
+            VideoContainer videoContainer = new VideoContainer {
                 folderPath = folderPath,
-                folderName = Path.GetFileName(folderPath),
+                folderName = folderName,
                 videoPath = videos,
-                audioPath = audio ?? string.Empty
+                audioPath = audio ?? string.Empty,
+                //base64 = ImageFileToBase64(Path.Combine(folderPath, $"{folderName}.png"))
             };
 
-            bool alreadyExists = _videoContainerList.videoContainerList.Any
-                (x => x.folderName == videoContainer.folderName)
-                                 || FolderObjectList.ContainsKey(videoContainer.folderName);
+            bool alreadyExists = _videoContainerList.videoContainerList.Any(x => x.folderName == videoContainer.folderName) || FolderObjectList.ContainsKey(videoContainer.folderName);
 
             if (FolderObjectList.ContainsKey(videoContainer.folderName) == false) {
                 FolderObjects obj = Instantiate(folderObjectPrefab, folderParent)
@@ -128,12 +151,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     if (!streamingAsset) {
                         await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
                     }
-                    PopupManager.Instance.ShowToast("Folder Added");
+                    //PopupManager.Instance.ShowToast("Folder Added");
                 }
             } else if (!streamingAsset && addToTheList) {
-                Debug.Log($"Folder Already Added: {videoContainer.folderName}");
+                Log($"Folder Already Added: {videoContainer.folderName}");
                 PopupManager.Instance.ShowPopup("Folder Already Added", MessageType.Error, PopupType.NoButton);
             }
+        }
+
+        public string FillTheImages() {
+            ThumbnailInformation thumbnailInformation = new ThumbnailInformation();
+            for (int i = 0; i < _videoContainerList.videoContainerList.Count; i++) {
+                thumbnailInformation.folderName.Add(_videoContainerList.videoContainerList[i].folderName);
+                thumbnailInformation.base64.Add(ImageFileToBase64(Path.Combine(_videoContainerList.videoContainerList[i].folderPath, $"{_videoContainerList.videoContainerList[i].folderName}.png")));
+            }
+            return JsonUtility.ToJson(thumbnailInformation);
         }
 
         public async void DeleteFolder(VideoContainer folder) {
@@ -146,10 +178,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private async Task LoadOrInitializeVideoList() {
             if (File.Exists(_jsonPath)) {
                 string jsonContent = await File.ReadAllTextAsync(_jsonPath);
-                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent)
-                                      ?? new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+                _videoContainerList = JsonUtility.FromJson<VideoContainerList>(jsonContent) ?? new VideoContainerList {
+                    videoContainerList = new List<VideoContainer>()
+                };
             } else {
-                _videoContainerList = new VideoContainerList { videoContainerList = new List<VideoContainer>() };
+                _videoContainerList = new VideoContainerList {
+                    videoContainerList = new List<VideoContainer>()
+                };
                 await CreateFile(_jsonPath);
             }
         }

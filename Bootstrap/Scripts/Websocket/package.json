@@ -1,0 +1,19 @@
+{
+    "name": "unity-websocket-server",
+    "version": "1.0.0",
+    "description": "WebSocket server for Unity",
+    "bin": "server.js",
+    "scripts": {
+        "build": "pkg . --targets node18-win-x64 --output unity-ws-server.exe",
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "ws": "^8.16.0"
+    },
+    "pkg": {
+        "assets": []
+    },
+    "devDependencies": {
+        "pkg": "^5.8.1"
+    }
+}

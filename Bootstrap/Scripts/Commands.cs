@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+
+
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public static class Commands {
         public const char Separator = '~';
@@ -10,17 +12,22 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public const string Mute = "Mute";
         public const string Unmute = "Unmute";
         public const string ToggleMute = "ToggleMute";
-        public const string Seek = "Seek";
+        public const string SetPosition = "SetPosition";
         public const string SetPlaybackSpeed = "SetPlaybackSpeed";
         public const string SliderData = "SliderData";
         public const string NameVideo = "NameVideo";
         public const string PlayThisVideo = "PlayThisVideo";
         public const string Loop = "Loop";
+        public const string NewVideo = "NewVideo";
+        public const string OpenFile = "OpenFile";
+        public const string FullScreen = "FullScreen";
+        public const string GetImages = "GetImages";
+        public const string Kill = "Kill";
     }
 
     [Serializable]
     public class VideoContainerList {
-        public List<VideoContainer> videoContainerList = new List<VideoContainer>();
+        public List<VideoContainer> videoContainerList = new();
     }
 
     [Serializable]
@@ -30,4 +37,17 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         public string[] videoPath;
         public string audioPath;
     }
+
+    [Serializable]
+    public class ThumbnailInformation {
+        public List<string> folderName;
+        public List<string> base64;
+
+        public ThumbnailInformation() {
+            folderName = new List<string>();
+            base64 = new List<string>();
+        }
+    }
+
+
 }

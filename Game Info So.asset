@@ -19,10 +19,12 @@ MonoBehaviour:
     gameID: multi-screen-video-player
     repoPath: https://github.com/vinayak-vc/multi-screen-video-player.git
     scenes:
-    - active: 1
-      scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
     - active: 0
+      scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
+    - active: 1
       scene: {fileID: 102900000, guid: 655bc7fbd4800ee4db6500f820532804, type: 3}
+    - active: 0
+      scene: {fileID: 102900000, guid: 764ea19ed585c454a8cd281316e9c846, type: 3}
     photonID: 
     agoraID: 
     projectSettings:
@@ -68,20 +70,20 @@ MonoBehaviour:
       alwaysIncludedShaders: []
       alwaysIncludedShadersVariantsCollection: []
     properties:
-      title: Phygital Video Player Controller
+      title: Immersive Experience
       companyName: ViitorCloud
-      bundleId: com.vc.phygital.video.player
-      version: 1.0.1
-      versionCode: 1
-      icon: {fileID: 2800000, guid: 7b5ad3ce0a326344fad1f391a681e97d, type: 3}
-      splashScreenLogo: {fileID: 0}
-      splashScreenLogoBg: {fileID: 0}
+      bundleId: com.viitorcloud.sutrasignalcontroller
+      version: 3.0.0
+      versionCode: 9
+      icon: {fileID: 2800000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
+      splashScreenLogo: {fileID: 21300000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
+      splashScreenLogoBg: {fileID: 21300000, guid: 2119a2be1b1b5004ca0593442552997e, type: 3}
       splashBgBlur: 1
       portrait: 0
       portraitUpsideDown: 0
       landscapeLeft: 1
       landscapeRight: 1
-      hostForSchemes: pvpc
+      hostForSchemes: immersive
       urlSchemes: []
     packages:
       ar: 0

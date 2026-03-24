@@ -12,7 +12,8 @@ using UnityEngine.Video;
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class VideoPlayerController : MonoBehaviour {
-        [SerializeField] private Canvas canvasPrefab;
+        [SerializeField]
+        private Canvas canvasPrefab;
 
         private readonly List<Canvas> _myCanvas = new();
         private VideoContainer _container;
@@ -21,11 +22,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private AudioClip _audioClip;
         private AudioSource _audioSource;
 
+        public Action VideoPlayerOnLoopPointReached;
+
         public void Init(VideoContainer container) {
             gameObject.name = container.folderName;
             _container = container;
             for (int i = 0; i < container.videoPath.Length; i++) {
-                RenderTexture renderTexture = new(Screen.width, Screen.height, 24);
+                RenderTexture renderTexture = new RenderTexture(Screen.width, Screen.height, 24);
                 GameObject videoPlayerPrefab = new();
                 videoPlayerPrefab.transform.SetParent(transform);
                 videoPlayerPrefab.transform.localPosition = Vector3.zero;
@@ -44,48 +47,60 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 videoContainer.Prepare();
 
                 Canvas canvas = Instantiate(canvasPrefab, transform);
-                canvas.targetDisplay = i;
+                int increment = i + (WindowsPlayer.Instance.IsThisSSPlayer() ? 0 : 1);
+                canvas.targetDisplay = increment;
 
-                RawImage rawImage = canvas.transform.GetChild(0)
-                    .GetComponent<RawImage>();
+                RawImage rawImage = canvas.transform.GetChild(0).GetComponent<RawImage>();
                 rawImage.texture = renderTexture;
 
                 videoPlayerPrefab.name = Path.GetFileNameWithoutExtension(container.videoPath[i]) + " VideoPlayer";
-                canvas.name = $"Display {i} Canvas";
-                rawImage.name = $"{i} RawImage";
+                canvas.name = $"Display {increment} Canvas";
+                rawImage.name = $"{increment} RawImage";
 
                 _myCanvas.Add(canvas);
                 _videoPlayerList.Add(videoContainer);
+
+                if (WindowsPlayer.Instance.IsThisSSPlayer()) {
+                    canvas.enabled = false;
+                }
             }
 
-            if (container.audioPath != string.Empty) {
-                StartCoroutine(WindowsPlayer.Instance.PlayAudioFromFile(container.audioPath, (audioClip) => {
-                    _audioClip = audioClip;
-                    _audioSource = gameObject.AddComponent<AudioSource>();
-                    _audioSource.clip = _audioClip;
-                    _audioSource.loop = true;
-                }));
-            } else {
+            // if (container.audioPath != string.Empty) {
+            //     StartCoroutine(WindowsPlayer.Instance.PlayAudioFromFile(container.audioPath, (audioClip) => {
+            //         _audioClip = audioClip;
+            //         _audioSource = gameObject.AddComponent<AudioSource>();
+            //         _audioSource.clip = _audioClip;
+            //         _audioSource.loop = false;
+            //     }));
+            // } else 
+            {
                 if (_videoPlayerList is not { Count: > 1 }) return;
-                _videoPlayerList[0].audioOutputMode = VideoAudioOutputMode.Direct;
-                _videoPlayerList[0].loopPointReached += OnLoopPointReached;
+                _videoPlayerList[0].audioOutputMode = WindowsPlayer.Instance.IsThisSSPlayer() ? VideoAudioOutputMode.None : VideoAudioOutputMode.Direct;
+                //_videoPlayerList[0].loopPointReached += OnLoopPointReached;
                 _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
             }
         }
 
         private void OnDisable() {
             if (_videoPlayerList is not { Count: > 1 }) return;
-            _videoPlayerList[0].loopPointReached -= OnLoopPointReached;
+            //_videoPlayerList[0].loopPointReached -= OnLoopPointReached;
             _videoPlayerList[0].prepareCompleted -= OnPrepareCompleted;
         }
 
-        private void OnLoopPointReached(VideoPlayer source) {
-            WindowsPlayer.Instance.PlayNextVideo();
+        public void OnLoopPointReached(VideoPlayer source) {
+            if (WindowsPlayer.Instance.Loop) {
+                WindowsPlayer.Instance.PlayNextVideo();
+            } else {
+                foreach (VideoPlayer videoPlayerList in GetVideoPlayerList()) {
+                    videoPlayerList.targetTexture.DiscardContents();
+                }
+            }
+            Log("loop Point reached");
+            VideoPlayerOnLoopPointReached?.Invoke();
         }
 
         private void OnPrepareCompleted(VideoPlayer source) {
             source.frame = 0;
-            Log("VideoPlayer Prepare Completed : " + source.name, source);
         }
 
         public void Play() {
@@ -155,6 +170,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                         if (!videoPlayer.isPlaying && videoPlayer.isPrepared) {
                             videoPlayer.Play();
                         }
+                    } else {
+                        LogError("Cannot seek video player", gameObject);
                     }
                 }
             } else {
@@ -235,10 +252,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 return -1;
             }
 
-            if (!_videoPlayerList[0].isPlaying) {
-                LogError("VideoPlayer is not playing", gameObject);
-                return -1;
-            }
+            // if (!_videoPlayerList[0].isPlaying) {
+            //     LogError("VideoPlayer is not playing", gameObject);
+            //     return -1;
+            // }
 
             return (int)_videoPlayerList[0].time;
         }
@@ -255,14 +272,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             if (!_videoPlayerList[0].isPrepared) {
-                LogError("VideoPlayer is not prepared", gameObject);
+//                LogError("VideoPlayer is not prepared", gameObject);
                 return -1;
             }
 
-            if (!_videoPlayerList[0].isPlaying) {
-                LogError("VideoPlayer is not playing", gameObject);
-                return -1;
-            }
+            // if (!_videoPlayerList[0].isPlaying) {
+            //     LogError("VideoPlayer is not playing", gameObject);
+            //     return -1;
+            // }
 
             return (int)_videoPlayerList[0].length;
         }
@@ -273,6 +290,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public string GetFolderPath() {
             return _container.folderPath;
+        }
+
+        public VideoContainer GetContainer() {
+            return _container;
+        }
+
+        public List<VideoPlayer> GetVideoPlayerList() {
+            return _videoPlayerList;
         }
     }
 }
