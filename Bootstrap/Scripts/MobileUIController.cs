@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -151,6 +151,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             setPlaybackSpeedButton.onClick.RemoveListener(OnSetPlaybackSpeedClicked);
             ipButton.onClick.RemoveListener(IpButtonClickEvent);
             refreshButton.onClick.RemoveListener(RefreshButtonClickEvent);
+            fullscreenButton.onClick.RemoveListener(SetFullScreenSSPlayer);
             BootstrapManager.OnClientDisconnected -= OnClientDisconnected;
             BootstrapManager.OnClientConnected -= SuccessCallBack;
             loopToggle.onValueChanged.RemoveListener(OnLoopToggleValueChanged);
@@ -186,7 +187,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 OnStopButtonClicked();
             }
 
-            // Example keys for new commands
             if (Input.GetKeyDown(KeyCode.M)) {
                 OnToggleMuteClicked();
             }
@@ -196,7 +196,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             if (Input.GetKeyDown(KeyCode.Plus)) {
-                // Example: Set playback speed to 1.5x
                 OnSetPlaybackSpeedClicked();
             }
 
@@ -245,7 +244,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private void OnClientDisconnected() {
-            //ipPanel.SetActive(true);
             PopupManager.Instance.ShowPopup("Windows is Disconnected", MessageType.Error, PopupType.NoButton);
             autoConnectPanel.SetActive(false);
             ipErrorText.text = "Disconnected";
@@ -312,23 +310,18 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     progressSlider.value = 0;
                 }
                 yield return new WaitForEndOfFrame();
-                OnSliderPointerUp(); // User released slider
+                OnSliderPointerUp();
             }
         }
 
         private void OnSetPlaybackSpeedClicked() {
-            if (_playbackSpeedIndex == _playbackSpeeds.Length - 1) {
-                _playbackSpeedIndex = 0;
-            } else {
-                _playbackSpeedIndex += 1;
-            }
-            setPlaybackSpeedButtonText.text = $"x{_playbackSpeeds[_playbackSpeedIndex % _playbackSpeeds.Length]}";
-
+            _playbackSpeedIndex = (_playbackSpeedIndex + 1) % _playbackSpeeds.Length;
+            setPlaybackSpeedButtonText.text = $"x{_playbackSpeeds[_playbackSpeedIndex]}";
             SendCommandToServer($"{Commands.SetPlaybackSpeed}{Commands.Separator}{_playbackSpeeds[_playbackSpeedIndex]}");
         }
 
         public void SetProgress(double currentTime, double length) {
-            if (!_isDraggingSlider) {
+            if (!_isDraggingSlider && currentTime >= 0 && length > 0) {
                 progressSlider.maxValue = (float)length;
                 progressSlider.value = (float)currentTime;
                 sliderText.text = $"{ConvertSecondsToMinutes((int)progressSlider.value)} / {ConvertSecondsToMinutes((int)progressSlider.maxValue)}";
@@ -336,12 +329,12 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public void OnSliderPointerDown() {
-            _isDraggingSlider = true; // User started dragging slider
+            _isDraggingSlider = true;
         }
 
         public void OnSliderPointerUp() {
             SendSeekCommand(progressSlider.value);
-            _isDraggingSlider = false; // User released slider
+            _isDraggingSlider = false;
         }
 
         private void SendSeekCommand(float time) {
@@ -376,9 +369,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 gridLayoutGroup.enabled = false;
                 scrollSnap.Setup();
                 try {
-                    // if (ind != null && int.TryParse(ind, out int indParsed) && indParsed < _buttonControllerList.Count) {
-                    //     _buttonControllerList[indParsed].HighLightButton();
-                    // }
                     HighLightThisButton(ind);
                 } catch (Exception e) {
                     LogError(e);
@@ -399,8 +389,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             if (!isTheSameScene) {
                 BootstrapManager.Instance.DisconnectClient();
             }
-            SceneManager.LoadScene(SceneManager.GetActiveScene()
-                .name);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         public void OnLoopToggleValueChanged(bool arg0) {
@@ -420,7 +409,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public void HighLightThisButton(string s) {
-            int index = int.Parse(s);
+            if (!int.TryParse(s, out int index) || index < 0 || index >= _buttonControllerList.Count) {
+                LogError($"HighLightThisButton: invalid index '{s}' for list of size {_buttonControllerList.Count}");
+                return;
+            }
             HighLightButtonEvent?.Invoke(index);
             for (int i = 0; i < _buttonControllerList.Count; i++) {
                 if (index == i) {
@@ -448,10 +440,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 gridLayoutGroup.enabled = false;
             }
         }
+
         public void ImagesReceived(string s) {
             ThumbnailInformation thumbnailInformation = JsonUtility.FromJson<ThumbnailInformation>(s);
+            if (thumbnailInformation == null) return;
 
             for (int i = 0; i < _buttonControllerList.Count; i++) {
+                if (i >= thumbnailInformation.folderName.Count || i >= thumbnailInformation.base64.Count) break;
                 if (_buttonControllerList[i].name == thumbnailInformation.folderName[i]) {
                     string imagePath = Path.Combine(Application.persistentDataPath, $"{thumbnailInformation.folderName[i]}.png");
                     if (!File.Exists(imagePath)) {

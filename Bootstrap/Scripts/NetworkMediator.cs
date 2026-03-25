@@ -1,4 +1,10 @@
-﻿using Unity.Netcode;
+using System;
+
+using Unity.Netcode;
+
+using UnityEngine;
+using static Modules.Utility.Utility;
+
 
 namespace ViitorCloud.MultiScreenVideoPlayer {
     public class NetworkMediator : NetworkBehaviour {
@@ -30,15 +36,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        // RPC to send the command to the server (Windows app)
+        // RPC to send the command to the client (Android app)
         [ClientRpc]
         private void SubmitCommandClientRpc(string command, ClientRpcParams rpcParams = default) {
             try {
                 if (AndroidPlayer.Instance) {
                     AndroidPlayer.Instance.ExecuteCommand(command);
                 }
-            } catch {
-                // ignored
+            } catch (Exception e) {
+                LogError($"Error executing client command '{command}': {e.Message}");
             }
         }
     }

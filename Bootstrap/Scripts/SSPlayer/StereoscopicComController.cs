@@ -24,13 +24,16 @@ namespace StereoscopicComControl {
         public static Action ClientConnected;
         private BasicWebSocketClient _basicWebSocketClient;
 
-
         public void RunAsync(BasicWebSocketClient basicWebSocketClient) {
             _basicWebSocketClient = basicWebSocketClient;
             LaunchExternalExe(Path.Combine(Application.streamingAssetsPath, "COMBridgeAppV1.exe"), out clientProcessId, out clientProcess);
         }
 
         public void SendMessage(string msg) {
+            if (_basicWebSocketClient == null) {
+                LogError("StereoscopicComController.SendMessage: basicWebSocketClient is null.");
+                return;
+            }
             _ = _basicWebSocketClient.Send("C" + msg);
         }
     }
