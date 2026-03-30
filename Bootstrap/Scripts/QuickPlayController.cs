@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.Video;
 
@@ -12,17 +13,18 @@ namespace ViitorCloud.MultiScreenVideoPlayer
 {
     /// <summary>
     /// Self-contained controller for the QuickPlay scene.
-    /// Mirrors WindowsUIController folder-based logic:
-    ///   - Scans StreamingAssets sub-folders on first run
-    ///   - Persists folder list to JSON in persistentDataPath
-    ///   - Instantiates FolderObjects prefab rows (Play + Delete buttons)
-    ///   - Add Folder button opens a folder-picker dialog
     ///
-    /// No dependency on WindowsPlayer or Android networking.
+    /// Keyboard / Gamepad controls:
+    ///   SPACE / A (South)  — play first video (Idle), pause/resume (Playing),
+    ///                        confirm selected folder (Picking)
+    ///   ESC   / B (East)   — open picker (Idle/Playing), close picker (Picking)
+    ///   Left-Stick / D-Pad — navigate folder rows while picker is open
     ///
-    /// Keyboard shortcuts:
-    ///   SPACE  — play first folder's first video when Idle
-    ///   ESC    — stop video and show the picker list; ESC again → Idle
+    /// Folder data mirrors WindowsUIController:
+    ///   - StreamingAssets sub-folders scanned on first run
+    ///   - Persisted to quickplay_videoContainerList.json in persistentDataPath
+    ///   - FolderObjects prefab rows with Play + Delete buttons
+    ///   - Add Folder button opens FileExplorer dialog
     /// </summary>
     public class QuickPlayController : MonoBehaviour
     {
@@ -37,17 +39,27 @@ namespace ViitorCloud.MultiScreenVideoPlayer
         [SerializeField] private Transform folderListParent;
         [SerializeField] private Button addFolderButton;
 
+        [Header("Gamepad Navigation")]
+        [Tooltip("Seconds between repeated navigation steps when joystick is held.")]
+        [SerializeField] private float navigateRepeatDelay = 0.12f;
+
         // ── State ─────────────────────────────────────────────────────────────
 
         private enum State { Idle, Playing, Picking }
         private State _state = State.Idle;
         private string _currentVideoPath;
 
-        // ── Data ──────────────────────────────────────────────────────────────
+        // ── Folder data ───────────────────────────────────────────────────────
 
         private VideoContainerList _videoContainerList;
         private readonly Dictionary<string, FolderObjects> _folderObjectMap = new();
+        private readonly List<FolderObjects> _folderObjectList = new();   // ordered for D-pad nav
         private string _jsonPath;
+
+        // ── Gamepad navigation state ──────────────────────────────────────────
+
+        private int _selectedIndex = -1;          // -1 = nothing selected
+        private float _navCooldown;               // time until next repeated nav step
 
         // ── Unity lifecycle ───────────────────────────────────────────────────
 
@@ -71,7 +83,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer
         private async void Start()
         {
             _jsonPath = Path.Combine(Application.persistentDataPath, "quickplay_videoContainerList.json");
-
             await LoadOrInitVideoList();
             ScanStreamingAssets();
 
@@ -87,53 +98,168 @@ namespace ViitorCloud.MultiScreenVideoPlayer
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
-                HandleSpace();
-            else if (Input.GetKeyDown(KeyCode.Escape))
-                HandleEscape();
+            HandleKeyboard();
+            HandleGamepad();
         }
 
         private void OnDestroy()
         {
             if (videoPlayer != null)
                 videoPlayer.loopPointReached -= OnLoopPointReached;
-
             if (addFolderButton != null)
                 addFolderButton.onClick.RemoveListener(OnAddFolderClicked);
         }
 
-        // ── Keyboard ──────────────────────────────────────────────────────────
+        // ── Keyboard input ────────────────────────────────────────────────────
 
-        private void HandleSpace()
+        private void HandleKeyboard()
         {
-            if (_state == State.Idle || _state == State.Picking)
-                PlayFirstAvailable();
+            if (Input.GetKeyDown(KeyCode.Space))
+                HandlePrimary();
+            else if (Input.GetKeyDown(KeyCode.Escape))
+                HandleSecondary();
+            else if (_state == State.Picking)
+            {
+                if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateFolders(1);
+                else if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateFolders(-1);
+            }
         }
 
-        private void HandleEscape()
+        // ── Gamepad input ─────────────────────────────────────────────────────
+
+        private void HandleGamepad()
+        {
+            Gamepad gp = Gamepad.current;
+            if (gp == null) return;
+
+            // A (South) — primary action
+            if (gp.buttonSouth.wasPressedThisFrame)
+                HandlePrimary();
+
+            // B (East) — secondary / menu
+            if (gp.buttonEast.wasPressedThisFrame)
+                HandleSecondary();
+
+            // D-Pad / Left-Stick navigation while picker is open
+            if (_state == State.Picking)
+            {
+                _navCooldown -= Time.deltaTime;
+
+                bool downPressed  = gp.dpad.down.wasPressedThisFrame  || gp.leftStick.down.wasPressedThisFrame;
+                bool upPressed    = gp.dpad.up.wasPressedThisFrame    || gp.leftStick.up.wasPressedThisFrame;
+
+                float stickY = gp.leftStick.ReadValue().y;
+                bool stickHeld = Mathf.Abs(stickY) > 0.5f;
+
+                if (downPressed || upPressed)
+                {
+                    int dir = downPressed ? 1 : -1;
+                    NavigateFolders(dir);
+                    _navCooldown = navigateRepeatDelay * 3f; // longer first delay
+                }
+                else if (stickHeld && _navCooldown <= 0f)
+                {
+                    NavigateFolders(stickY < 0 ? 1 : -1);
+                    _navCooldown = navigateRepeatDelay;
+                }
+                else if (!stickHeld)
+                {
+                    _navCooldown = 0f;
+                }
+            }
+        }
+
+        // ── Primary / Secondary actions ───────────────────────────────────────
+
+        /// <summary>A button / Space — context-sensitive primary action.</summary>
+        private void HandlePrimary()
+        {
+            switch (_state)
+            {
+                case State.Idle:
+                    PlayFirstAvailable();
+                    break;
+                case State.Playing:
+                    TogglePauseResume();
+                    break;
+                case State.Picking:
+                    ConfirmSelectedFolder();
+                    break;
+            }
+        }
+
+        /// <summary>B button / Escape — toggle picker menu.</summary>
+        private void HandleSecondary()
         {
             switch (_state)
             {
                 case State.Playing:
                 case State.Idle:
                     StopVideo();
-                    ui.ShowPicker(_videoContainerList.videoContainerList.Count);
-                    _state = State.Picking;
+                    OpenPicker();
                     break;
                 case State.Picking:
-                    ui.ShowIdle(_videoContainerList.videoContainerList.Count);
-                    _state = State.Idle;
+                    ClosePicker();
                     break;
             }
         }
 
-        // ── Folder list — FolderObjects callbacks ─────────────────────────────
+        private void OpenPicker()
+        {
+            ResetFolderSelection();
+            ui.ShowPicker(_videoContainerList.videoContainerList.Count);
+            _state = State.Picking;
+
+            // Auto-select first item for gamepad users
+            if (_folderObjectList.Count > 0)
+                NavigateFolders(0);
+        }
+
+        private void ClosePicker()
+        {
+            ResetFolderSelection();
+            ui.ShowIdle(_videoContainerList.videoContainerList.Count);
+            _state = State.Idle;
+        }
+
+        // ── Gamepad folder navigation ─────────────────────────────────────────
+
+        /// <summary>Move selection by <paramref name="delta"/> rows (0 = re-select current).</summary>
+        private void NavigateFolders(int delta)
+        {
+            if (_folderObjectList.Count == 0) return;
+
+            // Deselect old
+            if (_selectedIndex >= 0 && _selectedIndex < _folderObjectList.Count)
+                _folderObjectList[_selectedIndex].DeHighLightButton();
+
+            _selectedIndex = Mathf.Clamp(_selectedIndex + delta, 0, _folderObjectList.Count - 1);
+
+            // Highlight new
+            _folderObjectList[_selectedIndex].HighLightButton();
+        }
+
+        private void ConfirmSelectedFolder()
+        {
+            if (_selectedIndex < 0 || _selectedIndex >= _folderObjectList.Count) return;
+            VideoContainer vc = _folderObjectList[_selectedIndex]._videoContainer;
+            ResetFolderSelection();
+            OnFolderPlay(vc);
+        }
+
+        private void ResetFolderSelection()
+        {
+            if (_selectedIndex >= 0 && _selectedIndex < _folderObjectList.Count)
+                _folderObjectList[_selectedIndex].DeHighLightButton();
+            _selectedIndex = -1;
+        }
+
+        // ── FolderObjects callbacks ───────────────────────────────────────────
 
         private void OnFolderPlay(VideoContainer vc)
         {
             if (vc.videoPath == null || vc.videoPath.Length == 0)
             {
-                Debug.LogWarning("[QuickPlayController] Folder has no videos: " + vc.folderName);
                 ui.ShowError("No videos in folder: " + vc.folderName);
                 return;
             }
@@ -142,27 +268,35 @@ namespace ViitorCloud.MultiScreenVideoPlayer
 
         private void OnFolderDelete(VideoContainer vc)
         {
-            _videoContainerList.videoContainerList.Remove(vc);
+            int idx = _folderObjectList.FindIndex(f => f._videoContainer.folderName == vc.folderName);
+            if (idx >= 0) _folderObjectList.RemoveAt(idx);
+
             if (_folderObjectMap.TryGetValue(vc.folderName, out FolderObjects go))
             {
                 Destroy(go.gameObject);
                 _folderObjectMap.Remove(vc.folderName);
             }
+
+            _videoContainerList.videoContainerList.Remove(vc);
             _ = WriteJsonAsync();
-            ui.ShowIdle(_videoContainerList.videoContainerList.Count);
+
+            // Fix selection index after removal
+            if (_selectedIndex >= _folderObjectList.Count)
+                _selectedIndex = _folderObjectList.Count - 1;
+
             if (_state == State.Picking)
                 ui.ShowPicker(_videoContainerList.videoContainerList.Count);
+            else
+                ui.ShowIdle(_videoContainerList.videoContainerList.Count);
         }
 
-        // ── Add folder button ─────────────────────────────────────────────────
+        // ── Add Folder ────────────────────────────────────────────────────────
 
         private async void OnAddFolderClicked()
         {
             string lastDir = PlayerPrefs.GetString("quickplay_dir", Application.streamingAssetsPath);
             string dir = FileExplorer.OpenFolder(lastDir);
-
-            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
-                return;
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return;
 
             PlayerPrefs.SetString("quickplay_dir", dir);
 
@@ -173,10 +307,9 @@ namespace ViitorCloud.MultiScreenVideoPlayer
                 return;
             }
 
-            string[] files = Directory.GetFiles(dir).OrderBy(Path.GetFileName).ToArray();
-            string[] videos = files
-                .Where(f => WindowsPlayer.VideoExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                .ToArray();
+            string[] files  = Directory.GetFiles(dir).OrderBy(Path.GetFileName).ToArray();
+            string[] videos = files.Where(f => WindowsPlayer.VideoExtensions
+                .Contains(Path.GetExtension(f).ToLowerInvariant())).ToArray();
 
             if (videos.Length == 0)
             {
@@ -184,15 +317,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer
                 return;
             }
 
-            string audio = files.FirstOrDefault(f =>
-                WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()));
+            string audio = files.FirstOrDefault(f => WindowsPlayer.AudioExtensions
+                .Contains(Path.GetExtension(f).ToLowerInvariant()));
 
             VideoContainer vc = new VideoContainer
             {
                 folderPath = dir,
                 folderName = folderName,
-                videoPath = videos,
-                audioPath = audio ?? string.Empty,
+                videoPath  = videos,
+                audioPath  = audio ?? string.Empty,
             };
 
             _videoContainerList.videoContainerList.Add(vc);
@@ -209,16 +342,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer
         {
             if (_videoContainerList.videoContainerList.Count == 0)
             {
-                ui.ShowError("No folders added yet. Use Add Folder or press ESC to browse.");
+                ui.ShowError("No folders added yet. Press B / ESC to browse.");
                 return;
             }
-            VideoContainer first = _videoContainerList.videoContainerList[0];
-            if (first.videoPath == null || first.videoPath.Length == 0)
-            {
-                ui.ShowError("First folder has no videos.");
-                return;
-            }
-            PlayVideo(first.videoPath[0]);
+            OnFolderPlay(_videoContainerList.videoContainerList[0]);
         }
 
         private void PlayVideo(string path)
@@ -229,7 +356,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer
                 return;
             }
             _currentVideoPath = path;
-            videoPlayer.url = "file://" + path;
+            videoPlayer.url   = "file://" + path;
             videoPlayer.Prepare();
             StartCoroutine(WaitAndPlay());
         }
@@ -265,13 +392,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer
                 videoPlayer.Stop();
         }
 
+        private void TogglePauseResume()
+        {
+            if (videoPlayer.isPlaying)
+                videoPlayer.Pause();
+            else
+                videoPlayer.Play();
+        }
+
         private void OnLoopPointReached(VideoPlayer vp)
         {
             ui.ShowIdle(_videoContainerList.videoContainerList.Count);
             _state = State.Idle;
         }
 
-        // ── Folder scan ───────────────────────────────────────────────────────
+        // ── StreamingAssets scan ──────────────────────────────────────────────
 
         private void ScanStreamingAssets()
         {
@@ -285,22 +420,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer
                 if (_videoContainerList.videoContainerList.Any(x => x.folderName == folderName))
                     continue;
 
-                string[] files = Directory.GetFiles(folder).OrderBy(Path.GetFileName).ToArray();
-                string[] videos = files
-                    .Where(f => WindowsPlayer.VideoExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                    .ToArray();
+                string[] files  = Directory.GetFiles(folder).OrderBy(Path.GetFileName).ToArray();
+                string[] videos = files.Where(f => WindowsPlayer.VideoExtensions
+                    .Contains(Path.GetExtension(f).ToLowerInvariant())).ToArray();
 
                 if (videos.Length == 0) continue;
 
-                string audio = files.FirstOrDefault(f =>
-                    WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()));
+                string audio = files.FirstOrDefault(f => WindowsPlayer.AudioExtensions
+                    .Contains(Path.GetExtension(f).ToLowerInvariant()));
 
                 _videoContainerList.videoContainerList.Add(new VideoContainer
                 {
                     folderPath = folder,
                     folderName = folderName,
-                    videoPath = videos,
-                    audioPath = audio ?? string.Empty,
+                    videoPath  = videos,
+                    audioPath  = audio ?? string.Empty,
                 });
                 changed = true;
             }
@@ -314,6 +448,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer
             FolderObjects obj = Instantiate(folderObjectPrefab, folderListParent)
                 .Init(vc, OnFolderPlay, OnFolderDelete);
             _folderObjectMap[vc.folderName] = obj;
+            _folderObjectList.Add(obj);
         }
 
         // ── JSON persistence ──────────────────────────────────────────────────

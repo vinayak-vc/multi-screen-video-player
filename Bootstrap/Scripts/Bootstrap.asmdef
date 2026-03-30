@@ -9,7 +9,8 @@
         "Unity.Networking.Transport",
         "Coffee.UIEffect",
         "DOTween.Modules",
-        "LightScrollSnap"
+        "LightScrollSnap",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
