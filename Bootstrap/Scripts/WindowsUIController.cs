@@ -165,6 +165,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
+        public List<VideoContainer> GetVideoContainerList() {
+            return _videoContainerList?.videoContainerList ?? new List<VideoContainer>();
+        }
+
         public string FillTheImages() {
             ThumbnailInformation thumbnailInformation = new ThumbnailInformation();
             for (int i = 0; i < _videoContainerList.videoContainerList.Count; i++) {
