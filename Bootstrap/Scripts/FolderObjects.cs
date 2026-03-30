@@ -25,7 +25,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         
 
         private WindowsUIController _windowsUIController;
+        private Action<VideoContainer> _onPlayCallback;
+        private Action<VideoContainer> _onDeleteCallback;
         private string _hoverText = "";
+
         private void OnEnable() {
             playButton.onClick.AddListener(PlayVideoFromFolder);
             deleteButton.onClick.AddListener(DeleteVideoFromFolder);
@@ -35,14 +38,40 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             playButton.onClick.RemoveListener(PlayVideoFromFolder);
             deleteButton.onClick.RemoveListener(DeleteVideoFromFolder);
         }
+
         private void DeleteVideoFromFolder() {
-            _windowsUIController.DeleteFolder(_videoContainer);
+            if (_onDeleteCallback != null)
+                _onDeleteCallback(_videoContainer);
+            else if (_windowsUIController != null)
+                _windowsUIController.DeleteFolder(_videoContainer);
             Destroy(gameObject);
         }
 
+        private void PlayVideoFromFolder() {
+            if (_onPlayCallback != null)
+                _onPlayCallback(_videoContainer);
+            else
+                WindowsPlayer.Instance.PlayThisVideo(_videoContainer.folderName, true);
+        }
+
+        /// <summary>Original Init — used by WindowsUIController (networked Windows scene).</summary>
         public FolderObjects Init(VideoContainer videoContainer, WindowsUIController windowsUIController) {
-            _videoContainer = videoContainer;
             _windowsUIController = windowsUIController;
+            _onPlayCallback = null;
+            _onDeleteCallback = null;
+            return InitShared(videoContainer);
+        }
+
+        /// <summary>Callback Init — used by standalone/QuickPlay scenes that don't need WindowsUIController.</summary>
+        public FolderObjects Init(VideoContainer videoContainer, Action<VideoContainer> onPlay, Action<VideoContainer> onDelete) {
+            _windowsUIController = null;
+            _onPlayCallback = onPlay;
+            _onDeleteCallback = onDelete;
+            return InitShared(videoContainer);
+        }
+
+        private FolderObjects InitShared(VideoContainer videoContainer) {
+            _videoContainer = videoContainer;
             folderNameText.text = "Folder Name: " + videoContainer.folderName;
 
             for (int i = 0; i < videoContainer.videoPath.Length; i++) {
@@ -56,10 +85,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 _hoverText += $"Video {i + 1}: {_videoContainer.videoPath[i]}\n\n";
             }
             return this;
-        }
-
-        private void PlayVideoFromFolder() {
-            WindowsPlayer.Instance.PlayThisVideo(_videoContainer.folderName, true);
         }
 
         public void HighLightButton() {
