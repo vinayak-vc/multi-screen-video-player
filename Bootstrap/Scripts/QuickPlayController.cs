@@ -32,6 +32,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer
 
         [Header("References")]
         [SerializeField] private VideoPlayer videoPlayer;
+        [SerializeField] private UnityEngine.MeshRenderer videoPlayer360Renderer;
         [SerializeField] private QuickPlayUIController ui;
 
         [Header("Folder List")]
@@ -77,6 +78,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer
 
             videoPlayer.playOnAwake = false;
             videoPlayer.isLooping = false;
+
+            // 360-degree video setup — RenderTexture → sphere MeshRenderer
+            UnityEngine.RenderTexture rt360 = new UnityEngine.RenderTexture(2048, 1024, 24);
+            rt360.Create();
+            videoPlayer.renderMode = UnityEngine.Video.VideoRenderMode.RenderTexture;
+            videoPlayer.targetTexture = rt360;
+            if (videoPlayer360Renderer != null)
+                videoPlayer360Renderer.material.SetTexture("_BaseMap", rt360);
             videoPlayer.loopPointReached += OnLoopPointReached;
         }
 
@@ -139,6 +148,14 @@ namespace ViitorCloud.MultiScreenVideoPlayer
             // B (East) — secondary / menu
             if (gp.buttonEast.wasPressedThisFrame)
                 HandleSecondary();
+
+            // Y (West) — open Add Folder dialog while in picker
+            if (gp.buttonWest.wasPressedThisFrame && _state == State.Picking)
+                OnAddFolderClicked();
+
+            // X (North) — delete selected folder with confirmation while in picker
+            if (gp.buttonNorth.wasPressedThisFrame && _state == State.Picking && _selectedIndex >= 0)
+                ConfirmDeleteFolder();
 
             // D-Pad / Left-Stick navigation while picker is open
             if (_state == State.Picking)
@@ -288,6 +305,31 @@ namespace ViitorCloud.MultiScreenVideoPlayer
                 ui.ShowPicker(_videoContainerList.videoContainerList.Count);
             else
                 ui.ShowIdle(_videoContainerList.videoContainerList.Count);
+        }
+
+        // ── Delete Folder (gamepad X) ─────────────────────────────────────────
+
+        private void ConfirmDeleteFolder()
+        {
+            if (_selectedIndex < 0 || _selectedIndex >= _folderObjectList.Count) return;
+            VideoContainer vc = _folderObjectList[_selectedIndex]._videoContainer;
+            var yesProps = new ViitorCloud.Utility.PopupManager.ButtonProperties
+            {
+                ButtonName = "Yes",
+                ButtonAction = () => OnFolderDelete(vc)
+            };
+            var noProps = new ViitorCloud.Utility.PopupManager.ButtonProperties
+            {
+                ButtonName = "No",
+                ButtonAction = null
+            };
+            ViitorCloud.Utility.PopupManager.PopupManager.Instance.ShowPopup(
+                "Delete folder '" + vc.folderName + "' from the list?",
+                ViitorCloud.Utility.PopupManager.MessageType.Warning,
+                ViitorCloud.Utility.PopupManager.PopupType.TwoButton,
+                yesProps,
+                noProps
+            );
         }
 
         // ── Add Folder ────────────────────────────────────────────────────────
