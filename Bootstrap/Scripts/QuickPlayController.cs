@@ -79,13 +79,17 @@ namespace ViitorCloud.MultiScreenVideoPlayer
             videoPlayer.playOnAwake = false;
             videoPlayer.isLooping = false;
 
-            // 360-degree video setup — RenderTexture → sphere MeshRenderer
-            UnityEngine.RenderTexture rt360 = new UnityEngine.RenderTexture(2048, 1024, 24);
-            rt360.Create();
-            videoPlayer.renderMode = UnityEngine.Video.VideoRenderMode.RenderTexture;
-            videoPlayer.targetTexture = rt360;
+            // 360-degree video setup — only when a sphere MeshRenderer is wired in Inspector.
+            // If videoPlayer360Renderer is NOT assigned, video renders normally (no RenderTexture).
             if (videoPlayer360Renderer != null)
+            {
+                UnityEngine.RenderTexture rt360 = new UnityEngine.RenderTexture(2048, 1024, 24);
+                rt360.Create();
+                videoPlayer.renderMode = UnityEngine.Video.VideoRenderMode.RenderTexture;
+                videoPlayer.targetTexture = rt360;
                 videoPlayer360Renderer.material.SetTexture("_BaseMap", rt360);
+            }
+
             videoPlayer.loopPointReached += OnLoopPointReached;
         }
 

@@ -106,3 +106,5 @@ Bootstrap/Scripts/Websocket/unity-websocket-server-macos
 Bootstrap/Scripts/Websocket/unity-websocket-server-linux.meta
 Bootstrap/Scripts/Websocket/unity-websocket-server-linux
 Bootstrap/Scripts/Websocket/node_modules.meta
+Bootstrap/Scenes/QuickPlay.unity
+Bootstrap/Scenes/QuickPlay.unity.meta
