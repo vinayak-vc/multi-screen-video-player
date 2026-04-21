@@ -9,8 +9,6 @@ using System.Threading.Tasks;
 
 using UnityEngine;
 
-using Modules.Utility;
-
 using static Modules.Utility.Utility;
 
 using Debug = UnityEngine.Debug;
@@ -22,8 +20,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private ClientWebSocket _socket;
         private CancellationTokenSource _cts;
 
-        private Process? clientProcess;
-        private int clientProcessId;
+        private Process? _clientProcess;
+        private int _clientProcessId;
 
         private void Awake() {
             _cts = new CancellationTokenSource();
@@ -33,7 +31,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private async void Start() {
             try {
                 if (isThisWindows) {
-                    LaunchExternalExe(Path.Combine(Application.dataPath, "unity-websocket-server-win.exe"), out clientProcessId, out clientProcess);
+                    LaunchExternalExe(Path.Combine(Application.dataPath, "unity-websocket-server-win.exe"), out _clientProcessId, out _clientProcess);
 
                     // ✅ Non-blocking 1 second delay
                     await Task.Delay(1000);
@@ -102,7 +100,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private async void OnDestroy() {
             await Send("C" + Commands.Kill);
             await Disconnect();
-            clientProcess?.Kill();
+            _clientProcess?.Kill();
         }
         public async Task Disconnect() {
             try {

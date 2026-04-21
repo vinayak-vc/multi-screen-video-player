@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -16,7 +16,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         [SerializeField]
         private Canvas canvasPrefab;
 
-
         private readonly List<Canvas> _myCanvas = new();
         private VideoContainer _container;
         private readonly List<VideoPlayer> _videoPlayerList = new();
@@ -28,6 +27,8 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         public MeshRenderer myVideoPlayer360Renderer;
         public RenderTexture renderTexture360;
+
+        private const float PrepareTimeoutSeconds = 10f;
 
         public void Init(VideoContainer container) {
             gameObject.name = container.folderName;
@@ -60,12 +61,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     int increment = i + (WindowsPlayer.Instance.IsThisSSPlayer() ? 0 : 1);
                     canvas.targetDisplay = increment;
 
-                    RawImage rawImage = canvas.transform.GetChild(0).GetComponent<RawImage>();
-                    rawImage.texture = renderTexture;
+                    Transform canvasChild = canvas.transform.childCount > 0 ? canvas.transform.GetChild(0) : null;
+                    if (canvasChild == null) {
+                        LogError($"Canvas prefab has no children for display {increment}", gameObject);
+                    } else {
+                        RawImage rawImage = canvasChild.GetComponent<RawImage>();
+                        if (rawImage == null) {
+                            LogError($"Canvas child has no RawImage for display {increment}", gameObject);
+                        } else {
+                            rawImage.texture = renderTexture;
+                            rawImage.name = $"{increment} RawImage";
+                        }
+                    }
 
                     videoPlayerPrefab.name = Path.GetFileNameWithoutExtension(container.videoPath[i]) + " VideoPlayer";
                     canvas.name = $"Display {increment} Canvas";
-                    rawImage.name = $"{increment} RawImage";
 
                     _myCanvas.Add(canvas);
                     if (WindowsPlayer.Instance.IsThisSSPlayer()) {
@@ -79,25 +89,31 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 }
 
                 _videoPlayerList.Add(videoContainer);
-
             }
-            if (_videoPlayerList is not { Count: > 1 }) return;
-            _videoPlayerList[0].audioOutputMode = WindowsPlayer.Instance.IsThisSSPlayer() ? VideoAudioOutputMode.None : VideoAudioOutputMode.Direct;
-            _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
+
+            if (_videoPlayerList.Count > 1) {
+                _videoPlayerList[0].audioOutputMode = WindowsPlayer.Instance.IsThisSSPlayer() ? VideoAudioOutputMode.None : VideoAudioOutputMode.Direct;
+                _videoPlayerList[0].prepareCompleted += OnPrepareCompleted;
+            }
         }
 
         private void OnDisable() {
-            if (_videoPlayerList is not { Count: > 1 }) return;
-            //_videoPlayerList[0].loopPointReached -= OnLoopPointReached;
-            _videoPlayerList[0].prepareCompleted -= OnPrepareCompleted;
+            if (_videoPlayerList.Count > 1) {
+                _videoPlayerList[0].loopPointReached -= OnLoopPointReached;
+                _videoPlayerList[0].prepareCompleted -= OnPrepareCompleted;
+            }
         }
 
         public void OnLoopPointReached(VideoPlayer source) {
+            if (WindowsPlayer.Instance == null) {
+                LogError("WindowsPlayer instance is null on loop point reached.", gameObject);
+                return;
+            }
             if (WindowsPlayer.Instance.Loop) {
                 WindowsPlayer.Instance.PlayNextVideo();
             } else {
-                foreach (VideoPlayer videoPlayerList in GetVideoPlayerList()) {
-                    videoPlayerList.targetTexture.DiscardContents();
+                foreach (VideoPlayer vp in _videoPlayerList) {
+                    vp.targetTexture?.DiscardContents();
                 }
             }
             Log("loop Point reached");
@@ -106,6 +122,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private void OnPrepareCompleted(VideoPlayer source) {
             source.frame = 0;
+            Log("VideoPlayer Prepare Completed : " + source.name, source);
         }
 
         public void Play() {
@@ -119,10 +136,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                         if (!videoPlayer.isPrepared) {
                             videoPlayer.Prepare();
                         }
-                        yield return new WaitUntil(() => videoPlayer.isPrepared);
-                        if (!videoPlayer.isPrepared || videoPlayer.isPlaying) continue;
+
+                        float elapsed = 0f;
+                        while (!videoPlayer.isPrepared && elapsed < PrepareTimeoutSeconds) {
+                            elapsed += Time.deltaTime;
+                            yield return null;
+                        }
+
+                        if (!videoPlayer.isPrepared) {
+                            LogError($"VideoPlayer prepare timed out after {PrepareTimeoutSeconds}s: {videoPlayer.url}", gameObject);
+                            continue;
+                        }
+
+                        if (videoPlayer.isPlaying) continue;
                         videoPlayer.Play();
-                        if (_audioClip) {
+                        if (_audioClip != null && _audioSource != null) {
                             _audioSource.Play();
                         }
                     }
@@ -140,7 +168,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        // Stop the video
         public void Stop() {
             if (_videoPlayerList != null) {
                 for (int index = 0; index < _videoPlayerList.Count; index++) {
@@ -161,7 +188,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        // Pause the video
         public void Pause() {
             if (_videoPlayerList != null) {
                 foreach (VideoPlayer videoPlayer in _videoPlayerList) {
@@ -174,25 +200,19 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        // Seek to a specific time in seconds
         public void Seek(double timeInSeconds) {
-            if (_videoPlayerList != null) {
-                foreach (VideoPlayer videoPlayer in _videoPlayerList) {
-                    if (videoPlayer.canSetTime) {
-                        videoPlayer.time = timeInSeconds;
-                        if (!videoPlayer.isPlaying && videoPlayer.isPrepared) {
-                            videoPlayer.Play();
-                        }
-                    } else {
-                        LogError("Cannot seek video player", gameObject);
+            foreach (VideoPlayer videoPlayer in _videoPlayerList) {
+                if (videoPlayer.canSetTime) {
+                    videoPlayer.time = timeInSeconds;
+                    if (!videoPlayer.isPlaying && videoPlayer.isPrepared) {
+                        videoPlayer.Play();
                     }
+                } else {
+                    LogError("Cannot seek video player", gameObject);
                 }
-            } else {
-                LogError("VideoPlayerList is null", gameObject);
             }
         }
 
-        // Toggle mute state
         public void ToggleMute() {
             if (_videoPlayerList != null) {
                 foreach (VideoPlayer videoPlayer in _videoPlayerList) {
@@ -201,18 +221,19 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
         }
 
-        // Restart the video from the beginning
         public void Restart() {
             if (_videoPlayerList != null) {
                 foreach (VideoPlayer videoPlayer in _videoPlayerList) {
                     videoPlayer.Stop();
                     videoPlayer.time = 0;
+                    if (!videoPlayer.isPrepared) {
+                        videoPlayer.Prepare();
+                    }
                     videoPlayer.Play();
                 }
             }
         }
 
-        // Set playback speed (1.0 is normal speed)
         public void SetPlaybackSpeed(float speed) {
             if (_videoPlayerList != null && speed > 0) {
                 foreach (VideoPlayer videoPlayer in _videoPlayerList) {
@@ -222,79 +243,25 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public bool GetIsPrepared() {
-            if (_videoPlayerList == null) {
-                LogError("VideoPlayerList is null", gameObject);
-                return false;
-            }
-
-            if (_videoPlayerList.Count == 0) {
-                LogError("VideoPlayerList is empty", gameObject);
-                return false;
-            }
-
+            if (_videoPlayerList == null || _videoPlayerList.Count == 0) return false;
             return _videoPlayerList[0].isPrepared;
         }
 
         public bool GetIsPlaying() {
-            if (_videoPlayerList == null) {
-                LogError("VideoPlayerList is null", gameObject);
-                return false;
-            }
-
-            if (_videoPlayerList.Count == 0) {
-                LogError("VideoPlayerList is empty", gameObject);
-                return false;
-            }
-
+            if (_videoPlayerList == null || _videoPlayerList.Count == 0) return false;
             return _videoPlayerList[0].isPlaying;
         }
 
-        public int GetTime() {
-            if (_videoPlayerList == null) {
-                LogError("VideoPlayerList is null", gameObject);
-                return -1;
-            }
-
-            if (_videoPlayerList.Count == 0) {
-                LogError("VideoPlayerList is empty", gameObject);
-                return -1;
-            }
-
-            if (!_videoPlayerList[0].isPrepared) {
-                LogError("VideoPlayer is not prepared", gameObject);
-                return -1;
-            }
-
-            // if (!_videoPlayerList[0].isPlaying) {
-            //     LogError("VideoPlayer is not playing", gameObject);
-            //     return -1;
-            // }
-
-            return (int)_videoPlayerList[0].time;
+        public double GetTime() {
+            if (_videoPlayerList == null || _videoPlayerList.Count == 0) return -1;
+            if (!_videoPlayerList[0].isPrepared) return -1;
+            return _videoPlayerList[0].time;
         }
 
-        public int GetLength() {
-            if (_videoPlayerList == null) {
-                LogError("VideoPlayerList is null", gameObject);
-                return -1;
-            }
-
-            if (_videoPlayerList.Count == 0) {
-                LogError("VideoPlayerList is empty", gameObject);
-                return -1;
-            }
-
-            if (!_videoPlayerList[0].isPrepared) {
-//                LogError("VideoPlayer is not prepared", gameObject);
-                return -1;
-            }
-
-            // if (!_videoPlayerList[0].isPlaying) {
-            //     LogError("VideoPlayer is not playing", gameObject);
-            //     return -1;
-            // }
-
-            return (int)_videoPlayerList[0].length;
+        public double GetLength() {
+            if (_videoPlayerList == null || _videoPlayerList.Count == 0) return -1;
+            if (!_videoPlayerList[0].isPrepared) return -1;
+            return _videoPlayerList[0].length;
         }
 
         public string GetFolderName() {

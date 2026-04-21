@@ -115,45 +115,48 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
         private int _playbackSpeedIndex;
         private bool _isDraggingSlider;
+        private bool _isInitialized;
 
         public static Action<int> HighLightButtonEvent;
 
         private void OnEnable() {
-            loopToggle.onValueChanged.AddListener(OnLoopToggleValueChanged);
-            playButton.onClick.AddListener(OnPlayButtonClicked);
-            pauseButton.onClick.AddListener(OnPauseButtonClicked);
+            if (loopToggle != null) loopToggle.onValueChanged.AddListener(OnLoopToggleValueChanged);
+            if (playButton != null) playButton.onClick.AddListener(OnPlayButtonClicked);
+            if (pauseButton != null) pauseButton.onClick.AddListener(OnPauseButtonClicked);
 
             //stopButton.onClick.AddListener(OnStopButtonClicked);
-            muteButton.onClick.AddListener(OnToggleMuteClicked);
-            unmuteButton.onClick.AddListener(OnToggleMuteClicked);
-            restartButton.onClick.AddListener(OnRestartButtonClicked);
-            secondsPrev.onClick.AddListener(Seek15SecPrev);
-            secondsNext.onClick.AddListener(Seek15SecNext);
-            setPlaybackSpeedButton.onClick.AddListener(OnSetPlaybackSpeedClicked);
-            ipButton.onClick.AddListener(IpButtonClickEvent);
-            refreshButton.onClick.AddListener(RefreshButtonClickEvent);
-            fullscreenButton.onClick.AddListener(SetFullScreenSSPlayer);
+            if (muteButton != null) muteButton.onClick.AddListener(OnToggleMuteClicked);
+            if (unmuteButton != null) unmuteButton.onClick.AddListener(OnToggleMuteClicked);
+            if (restartButton != null) restartButton.onClick.AddListener(OnRestartButtonClicked);
+            if (secondsPrev != null) secondsPrev.onClick.AddListener(Seek15SecPrev);
+            if (secondsNext != null) secondsNext.onClick.AddListener(Seek15SecNext);
+            if (setPlaybackSpeedButton != null) setPlaybackSpeedButton.onClick.AddListener(OnSetPlaybackSpeedClicked);
+            if (ipButton != null) ipButton.onClick.AddListener(IpButtonClickEvent);
+            if (refreshButton != null) refreshButton.onClick.AddListener(RefreshButtonClickEvent);
+            if (fullscreenButton != null) fullscreenButton.onClick.AddListener(SetFullScreenSSPlayer);
 
             BootstrapManager.OnClientConnected += SuccessCallBack;
             BootstrapManager.OnClientDisconnected += OnClientDisconnected;
+            _isInitialized = true;
         }
 
         private void OnDisable() {
-            playButton.onClick.RemoveListener(OnPlayButtonClicked);
-            pauseButton.onClick.RemoveListener(OnPauseButtonClicked);
+            _isInitialized = false;
+            if (playButton != null) playButton.onClick.RemoveListener(OnPlayButtonClicked);
+            if (pauseButton != null) pauseButton.onClick.RemoveListener(OnPauseButtonClicked);
 
             //stopButton.onClick.RemoveListener(OnStopButtonClicked);
-            muteButton.onClick.RemoveListener(OnToggleMuteClicked);
-            unmuteButton.onClick.RemoveListener(OnToggleMuteClicked);
-            restartButton.onClick.RemoveListener(OnRestartButtonClicked);
-            secondsPrev.onClick.RemoveListener(Seek15SecPrev);
-            secondsNext.onClick.RemoveListener(Seek15SecNext);
-            setPlaybackSpeedButton.onClick.RemoveListener(OnSetPlaybackSpeedClicked);
-            ipButton.onClick.RemoveListener(IpButtonClickEvent);
-            refreshButton.onClick.RemoveListener(RefreshButtonClickEvent);
+            if (muteButton != null) muteButton.onClick.RemoveListener(OnToggleMuteClicked);
+            if (unmuteButton != null) unmuteButton.onClick.RemoveListener(OnToggleMuteClicked);
+            if (restartButton != null) restartButton.onClick.RemoveListener(OnRestartButtonClicked);
+            if (secondsPrev != null) secondsPrev.onClick.RemoveListener(Seek15SecPrev);
+            if (secondsNext != null) secondsNext.onClick.RemoveListener(Seek15SecNext);
+            if (setPlaybackSpeedButton != null) setPlaybackSpeedButton.onClick.RemoveListener(OnSetPlaybackSpeedClicked);
+            if (ipButton != null) ipButton.onClick.RemoveListener(IpButtonClickEvent);
+            if (refreshButton != null) refreshButton.onClick.RemoveListener(RefreshButtonClickEvent);
             BootstrapManager.OnClientDisconnected -= OnClientDisconnected;
             BootstrapManager.OnClientConnected -= SuccessCallBack;
-            loopToggle.onValueChanged.RemoveListener(OnLoopToggleValueChanged);
+            if (loopToggle != null) loopToggle.onValueChanged.RemoveListener(OnLoopToggleValueChanged);
         }
 
         private void Start() {
@@ -173,6 +176,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
 
 #if UNITY_EDITOR || UNITY_STANDALONE
         public void Update() {
+            if (!_isInitialized) return;
             if (Input.GetKeyDown(KeyCode.Space)) {
                 _isPlaying = !_isPlaying;
                 if (_isPlaying) {
@@ -235,6 +239,10 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private IEnumerator ConnectionSuccessful() {
+            if (AndroidPlayer.Instance == null) {
+                Debug.LogWarning("[MobileUIController] AndroidPlayer.Instance is null — cannot fetch video name.");
+                yield break;
+            }
             AndroidPlayer.Instance.GetVideoName();
             ConnectionSuccesfull?.Invoke();
             yield return new WaitForSeconds(2f);
@@ -328,6 +336,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public void SetProgress(double currentTime, double length) {
+            if (progressSlider == null) return;
             if (!_isDraggingSlider) {
                 progressSlider.maxValue = (float)length;
                 progressSlider.value = (float)currentTime;

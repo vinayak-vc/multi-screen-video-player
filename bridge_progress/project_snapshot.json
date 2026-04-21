@@ -1,0 +1,74 @@
+{
+  "project_name": "Multi-Screen Video Player",
+  "snapshot_timestamp": "2026-04-03T14:35:00Z",
+  "file_tree": {
+    "scripts": [
+      {
+        "path": "Bootstrap/Scripts/BootstrapManager.cs",
+        "status": "Implemented",
+        "description": "Network entry point"
+      },
+      {
+        "path": "Bootstrap/Scripts/NetworkMediator.cs",
+        "status": "Implemented",
+        "description": "Networking RPC bridge"
+      },
+      {
+        "path": "Bootstrap/Scripts/Commands.cs",
+        "status": "Implemented",
+        "description": "Network command vocabulary"
+      },
+      {
+        "path": "Bootstrap/Scripts/WindowsPlayer.cs",
+        "status": "Implemented",
+        "description": "Core Host controller"
+      },
+      {
+        "path": "Bootstrap/Scripts/VideoPlayerController.cs",
+        "status": "Implemented",
+        "description": "Video player wrapper"
+      },
+      {
+        "path": "Bootstrap/Scripts/WindowsUIController.cs",
+        "status": "Implemented",
+        "description": "Host-side UI management"
+      },
+      {
+        "path": "Bootstrap/Scripts/AndroidPlayer.cs",
+        "status": "Implemented",
+        "description": "Client-side controller"
+      },
+      {
+        "path": "Bootstrap/Scripts/MobileUIController.cs",
+        "status": "Implemented",
+        "description": "Remote control UI"
+      },
+      {
+        "path": "Script/ImmersiveManager.cs",
+        "status": "Implemented",
+        "description": "UI transitions and fading"
+      },
+      {
+        "path": "Bootstrap/Scripts/QuickPlayController.cs",
+        "status": "Implemented",
+        "description": "360-degree media control"
+      },
+      {
+        "path": "Bootstrap/Scripts/FileExplorer.cs",
+        "status": "Implemented",
+        "description": "System file indexing"
+      }
+    ],
+    "scenes": [
+      "Bootstrap/Scenes/Windows.unity",
+      "Bootstrap/Scenes/Android.unity",
+      "Bootstrap/Scenes/Windows 360.unity",
+      "Bootstrap/Scenes/Mix.unity"
+    ]
+  },
+  "completed_task_ids": [
+    "INIT"
+  ],
+  "pending_task_ids": [],
+  "failed_task_id": null
+}

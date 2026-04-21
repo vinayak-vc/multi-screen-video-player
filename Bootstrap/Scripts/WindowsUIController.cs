@@ -37,6 +37,7 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         private void OnEnable() {
             addNewButton.onClick.AddListener(OnAddNewButtonClickEvent);
         }
+
         private void OnDisable() {
             addNewButton.onClick.RemoveListener(OnAddNewButtonClickEvent);
         }
@@ -47,36 +48,32 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         private async void Start() {
-            await LoadOrInitializeVideoList();
+            try {
+                await LoadOrInitializeVideoList();
 
-            StreamingAssetScan();
-            //bool isModified = false;
-            if (_videoContainerList.videoContainerList.Count > 0) {
-                // Restore existing folders
-                for (int index = 0; index < _videoContainerList.videoContainerList.Count; index++) {
-                    VideoContainer folder = _videoContainerList.videoContainerList[index];
+                StreamingAssetScan();
 
-                    // if (string.IsNullOrEmpty(folder.base64) || string.IsNullOrWhiteSpace(folder.base64)) {
-                    //     folder.base64 = ImageFileToBase64(Path.Combine(folder.folderPath, $"{folder.folderName}.png"));
-                    //     isModified = true;
-                    // }
-                    await FillVideoContainerList(folder.folderPath, false);
+                if (_videoContainerList.videoContainerList.Count > 0) {
+                    // Restore existing folders
+                    for (int index = 0; index < _videoContainerList.videoContainerList.Count; index++) {
+                        VideoContainer folder = _videoContainerList.videoContainerList[index];
+                        await FillVideoContainerList(folder.folderPath, false);
+                    }
+                    WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
+                } else {
+                    _isFirstTime = true;
+                    addNewPanel.SetActive(true);
+                    PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by clicking 'Add New Folder'");
                 }
-                WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
-            } else {
-                _isFirstTime = true;
-                addNewPanel.SetActive(true);
-                PopupManager.Instance.ShowToast("No Folders Found, Please Add New Folder by clicking 'Add New Folder'");
-            }
 
-            if (WindowsPlayer.Instance.isBothInSameScene) {
-                BootstrapManager.OnClientConnected.Invoke(true);
+                if (WindowsPlayer.Instance.isBothInSameScene) {
+                    BootstrapManager.OnClientConnected?.Invoke(true);
+                }
+            } catch (Exception ex) {
+                Debug.LogError($"Error during WindowsUIController initialization: {ex.Message}");
             }
-
-            // if (isModified) {
-            //     await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
-            // }
         }
+
         private async void OnAddNewButtonClickEvent() {
             try {
                 string lastDir = PlayerPrefs.GetString("dir", Application.streamingAssetsPath);
@@ -88,7 +85,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     if (_isFirstTime && FolderObjectList.Count > 0) {
                         WindowsPlayer.Instance.FillVideoContainerList(_videoContainerList);
                         _isFirstTime = false;
-                    } else {
                     }
                     WindowsPlayer.Instance.NewFolderAdded(_videoContainerList);
                 } else {
@@ -107,7 +103,15 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
             }
 
             foreach (string folder in Directory.GetDirectories(path)) {
-                _ = FillVideoContainerList(folder, true, true); // Fire and forget
+                ScanStreamingAssetFolder(folder);
+            }
+        }
+
+        private async void ScanStreamingAssetFolder(string folder) {
+            try {
+                await FillVideoContainerList(folder, true, true);
+            } catch (Exception e) {
+                Debug.LogError($"Error scanning streaming asset folder '{folder}': {e.Message}");
             }
         }
 
@@ -124,6 +128,11 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                     .ToLower()))
                 .ToArray();
 
+            if (videos.Length == 0) {
+                Debug.LogWarning($"No video files found in folder: {folderPath}");
+                return;
+            }
+
             string audio = files.FirstOrDefault(file => WindowsPlayer.AudioExtensions.Contains(Path.GetExtension(file)
                 .ToLower()));
 
@@ -133,7 +142,6 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 folderName = folderName,
                 videoPath = videos,
                 audioPath = audio ?? string.Empty,
-                //base64 = ImageFileToBase64(Path.Combine(folderPath, $"{folderName}.png"))
             };
 
             bool alreadyExists = _videoContainerList.videoContainerList.Any(x => x.folderName == videoContainer.folderName) || FolderObjectList.ContainsKey(videoContainer.folderName);
@@ -144,19 +152,21 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
                 FolderObjectList.Add(videoContainer.folderName, obj);
             }
 
-
             if (!alreadyExists) {
                 if (addToTheList) {
                     _videoContainerList.videoContainerList.Add(videoContainer);
                     if (!streamingAsset) {
                         await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
                     }
-                    //PopupManager.Instance.ShowToast("Folder Added");
                 }
             } else if (!streamingAsset && addToTheList) {
                 Log($"Folder Already Added: {videoContainer.folderName}");
                 PopupManager.Instance.ShowPopup("Folder Already Added", MessageType.Error, PopupType.NoButton);
             }
+        }
+
+        public List<VideoContainer> GetVideoContainerList() {
+            return _videoContainerList?.videoContainerList ?? new List<VideoContainer>();
         }
 
         public string FillTheImages() {
@@ -169,10 +179,13 @@ namespace ViitorCloud.MultiScreenVideoPlayer {
         }
 
         public async void DeleteFolder(VideoContainer folder) {
-            _videoContainerList.videoContainerList.Remove(folder);
-            FolderObjectList.Remove(folder.folderName);
-
-            await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+            try {
+                _videoContainerList.videoContainerList.Remove(folder);
+                FolderObjectList.Remove(folder.folderName);
+                await WriteTextToFile(_jsonPath, JsonUtility.ToJson(_videoContainerList));
+            } catch (Exception e) {
+                Debug.LogError($"Error deleting folder '{folder.folderName}': {e.Message}");
+            }
         }
 
         private async Task LoadOrInitializeVideoList() {

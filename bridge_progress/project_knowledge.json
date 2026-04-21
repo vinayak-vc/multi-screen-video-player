@@ -1,0 +1,70 @@
+{
+  "project": {
+    "name": "multi-screen-video-player",
+    "type": "unity",
+    "language": "",
+    "summary": "# Multi-Screen Video Player ## 1. Project Overview & Architecture The **Multi-Screen Video Player** is a networked Unity application designed to playback and synchronize video content across multiple displays (or a stereoscopic player), remotely controlled by an Android device. The architecture stri",
+    "repo_root": "H:\\Vinayak_Project\\multi-screen-video-player-base-project\\Assets\\Games\\multi-screen-video-player",
+    "first_seen": "2026-04-21",
+    "last_updated": "2026-04-21",
+    "understanding_confirmed": false,
+    "external_scanner": "code-review-graph",
+    "external_scanner_last_refreshed": "2026-04-21T13:39:27"
+  },
+  "files": {},
+  "docs": [
+    {
+      "path": "README.md",
+      "title": "Multi-Screen Video Player",
+      "summary": "# Multi-Screen Video Player ## 1. Project Overview & Architecture The **Multi-Screen Video Player** is a networked Unity application designed to playback and synchronize video content across multiple displays (or a stereoscopic player), remotely controlled by an Android device. The architecture strictly follows a **Client-Server (Host-Remote)** model using **Unity Netcode for GameObjects**.",
+      "score": 195
+    },
+    {
+      "path": "SBS-wall/README.md",
+      "title": "SBS 3D Stereo Unity Package",
+      "summary": "# SBS 3D Stereo Unity Package A comprehensive Unity package for implementing Side-by-Side (SBS) 3D stereo rendering with real-time calibration and interaction controls. ## Overview This package provides a complete solution for creating 3D stereo experiences in Unity using the Side-by-Side (SBS) format. It includes camera rig management, stereo settings, display controls, UI interface, and keyboard interactions for real-time adjustment of stereo parameters.",
+      "score": 160
+    },
+    {
+      "path": "ThirdPaty/com.emrecelik95.lightscrollsnap/README.md",
+      "title": "LightScrollSnap",
+      "summary": "## LightScrollSnap A simple tool to make unity scrollview to be snapped. It includes some default resources and provides various options as well as writing custom transition effects. ### Installation **Install via UPM UI** (git url using unity package manager) 1) Go Window - Package Manager - Add package from git URL...",
+      "score": 160
+    },
+    {
+      "path": "SBS-wall/.aider.chat.history.md",
+      "title": "aider chat started at 2026-03-27 12:29:58",
+      "summary": "# aider chat started at 2026-03-27 12:29:58 Can't initialize prompt toolkit: Found xterm-256color, while expecting a Windows console. Maybe try to run this program using \"winpty\" or run it in cmd.exe instead. Or otherwise, in case of Cygwin, use the Python executable that is compiled for Cygwin.",
+      "score": 40
+    },
+    {
+      "path": "WORK_LOG.md",
+      "title": "WORK LOG \u2014 Multi-Screen Video Player",
+      "summary": "# WORK LOG \u2014 Multi-Screen Video Player Branch: Tracks all work in sequence: who did what, what's done, what's missing. --- ## LEGEND \u2705 Done \u26a0\ufe0f Partial \u274c Missing \ud83d\udd35 Claude (Supervisor / Architect) \ud83d\udfe1 Aider (Developer / Executor) --- ## SESSION LOG | Date | Who | Task ID | Action | Status | |------------|------------|----------|-------------------------------------------|---------| | 2026-04-03 | \ud83d\udd35 Claude | INIT | Initialized project knowledge for Bridge | \u2705 Done |",
+      "score": 10
+    }
+  ],
+  "patterns": [
+    "Code-review-graph nodes=0, edges=0, files=0",
+    "Code-review-graph flows=0, communities=0"
+  ],
+  "features_done": [],
+  "suggested_next": [],
+  "clarifications": [],
+  "runs": [],
+  "external_scanners": {
+    "code_review_graph": {
+      "db_path": "H:\\Vinayak_Project\\multi-screen-video-player-base-project\\Assets\\Games\\multi-screen-video-player\\.code-review-graph\\graph.db",
+      "nodes": 0,
+      "edges": 0,
+      "files": 0,
+      "flows": 0,
+      "communities": 0,
+      "top_communities": [],
+      "last_updated": "",
+      "git_branch": "",
+      "git_head_sha": "",
+      "last_build_type": ""
+    }
+  }
+}
