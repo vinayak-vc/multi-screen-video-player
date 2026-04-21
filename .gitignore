@@ -108,3 +108,48 @@ Bootstrap/Scripts/Websocket/unity-websocket-server-linux
 Bootstrap/Scripts/Websocket/node_modules.meta
 Bootstrap/Scenes/QuickPlay.unity
 Bootstrap/Scenes/QuickPlay.unity.meta
+
+# ── Aider / Bridge artefacts ─────────────────────────────────────
+taskJsons/                               # AI-generated task plan JSON files
+.aider.tags.cache.v4/                    # Aider repo-map tag cache
+bridge_progress/                         # Bridge run state, checkpoints and reports
+logs.meta                                # Unity meta for bridge logs folder
+.aider.input.history                     # Aider interactive input history
+.aider.chat.history.md                   # Aider chat history
+bridge_progress.meta                     # Unity meta for bridge_progress folder
+
+# ── Aider / Bridge artefacts ─────────────────────────────────────
+taskJsons/                               # AI-generated task plan JSON files
+.aider.tags.cache.v4/                    # Aider repo-map tag cache
+bridge_progress/                         # Bridge run state, checkpoints and reports
+logs.meta                                # Unity meta for bridge logs folder
+.aider.input.history                     # Aider interactive input history
+.aider.chat.history.md                   # Aider chat history
+bridge_progress.meta                     # Unity meta for bridge_progress folder
+
+# ── Aider / Bridge artefacts ─────────────────────────────────────
+taskJsons/                               # AI-generated task plan JSON files
+.aider.tags.cache.v4/                    # Aider repo-map tag cache
+bridge_progress/                         # Bridge run state, checkpoints and reports
+logs.meta                                # Unity meta for bridge logs folder
+.aider.input.history                     # Aider interactive input history
+.aider.chat.history.md                   # Aider chat history
+bridge_progress.meta                     # Unity meta for bridge_progress folder
+
+# ── Aider / Bridge artefacts ─────────────────────────────────────
+taskJsons/                               # AI-generated task plan JSON files
+.aider.tags.cache.v4/                    # Aider repo-map tag cache
+bridge_progress/                         # Bridge run state, checkpoints and reports
+logs.meta                                # Unity meta for bridge logs folder
+.aider.input.history                     # Aider interactive input history
+.aider.chat.history.md                   # Aider chat history
+bridge_progress.meta                     # Unity meta for bridge_progress folder
+
+# ── Aider / Bridge artefacts ─────────────────────────────────────
+taskJsons/                               # AI-generated task plan JSON files
+.aider.tags.cache.v4/                    # Aider repo-map tag cache
+bridge_progress/                         # Bridge run state, checkpoints and reports
+logs.meta                                # Unity meta for bridge logs folder
+.aider.input.history                     # Aider interactive input history
+.aider.chat.history.md                   # Aider chat history
+bridge_progress.meta                     # Unity meta for bridge_progress folder

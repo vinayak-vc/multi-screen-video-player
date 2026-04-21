@@ -16,15 +16,19 @@ MonoBehaviour:
   value:
     gamePath: 
     usesLocalization: 0
-    gameID: multi-screen-video-player
+    gameID: a5e0de016f1c8291df5bbc9d20f4b1ce9033ebb89b624117
     repoPath: https://github.com/vinayak-vc/multi-screen-video-player.git
     scenes:
-    - active: 0
-      scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
     - active: 1
+      scene: {fileID: 102900000, guid: 67abd83f739bd7c48b725547017752fa, type: 3}
+    - active: 1
+      scene: {fileID: 102900000, guid: 7a6e122bd2b01425989087a299b6bb93, type: 3}
+    - active: 0
       scene: {fileID: 102900000, guid: 655bc7fbd4800ee4db6500f820532804, type: 3}
     - active: 0
       scene: {fileID: 102900000, guid: 764ea19ed585c454a8cd281316e9c846, type: 3}
+    - active: 0
+      scene: {fileID: 102900000, guid: d78d1bb44bcf2ec498381dc1f8319008, type: 3}
     photonID: 
     agoraID: 
     projectSettings:
@@ -74,7 +78,7 @@ MonoBehaviour:
       companyName: ViitorCloud
       bundleId: com.viitorcloud.sutrasignalcontroller
       version: 3.0.0
-      versionCode: 9
+      versionCode: 10
       icon: {fileID: 2800000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
       splashScreenLogo: {fileID: 21300000, guid: 1a8dfdd88b1a2d443baa3b7f1f5bc77c, type: 3}
       splashScreenLogoBg: {fileID: 21300000, guid: 2119a2be1b1b5004ca0593442552997e, type: 3}

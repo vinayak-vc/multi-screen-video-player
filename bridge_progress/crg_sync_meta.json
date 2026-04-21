@@ -1,0 +1,14 @@
+{
+  "last_success_epoch": 1776758967.8775811,
+  "last_attempt_epoch": 1776758967.8775811,
+  "last_status": "success",
+  "last_mode": "incremental",
+  "snapshot": {
+    "nodes": 0,
+    "edges": 0,
+    "files": 0,
+    "flows": 0,
+    "communities": 0,
+    "last_updated": ""
+  }
+}
